@@ -60,3 +60,36 @@ Tests use an in-memory H2 database (`backend/src/test/resources/application.prop
 | GET  | `/api/reviews/pending/count` | Cases waiting for review |
 
 Run tests: `cd backend && ./mvnw test`
+
+## AI layer (Spring AI + Claude)
+```
+backend/src/main/java/com/cognizant/backend/ai/
+├── config/AiConfig.java        # one ChatClient per role (system prompt + effort)
+├── config/AiProperties.java    # kavasam.ai.* settings (model, max tokens, effort per role)
+├── HealthAssistantService.java # the sample health assistant being tested
+├── JudgeService.java           # scores an answer against must-do / must-not-do criteria
+├── InvestigatorAgent.java      # agent: picks follow-ups and evidence lookups via tools
+├── tools/InvestigatorTools.java# @Tool methods the agent can call
+├── AiController.java           # /api/ai endpoints
+└── dto/                        # request/response records
+backend/src/main/resources/prompts/   # system prompts for each role
+```
+Roles and models: the health assistant under test runs on **Gemini** (`kavasam.ai.assistant-model`);
+the judge and investigator run on **Claude** (`kavasam.ai.judge-model`), so no model grades itself.
+
+Keys go in `backend/.env` (git-ignored; copy `backend/.env.example`) or in environment variables:
+```
+GEMINI_API_KEY=...
+ANTHROPIC_API_KEY=...
+```
+Start the backend from the `backend/` folder so `.env` is found. Without a key the app still starts
+and the affected `/api/ai/*` endpoints answer 503. Model calls time out after
+`kavasam.ai.timeout-seconds`. Tests never call the real APIs.
+
+| Method | Path | Purpose |
+|---|---|---|
+| GET  | `/api/ai/status` | Whether a key is set, and the model/effort in use |
+| POST | `/api/ai/ask` | Ask the health assistant `{question, language}` |
+| POST | `/api/ai/ask/multilingual` | Same question in each language `{questions: {EN, TA, HI}}` |
+| POST | `/api/ai/judge` | Judge an answer `{question, answer, language, mustDo[], mustNotDo[]}` |
+| POST | `/api/ai/investigate` | Run the investigator agent `{question, language, mustDo[], mustNotDo[]}` |

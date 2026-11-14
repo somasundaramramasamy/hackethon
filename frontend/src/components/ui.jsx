@@ -1,4 +1,4 @@
-import { CircleCheck, TriangleAlert, Loader2 } from 'lucide-react'
+import { CircleCheck, CircleX, TriangleAlert, Loader2 } from 'lucide-react'
 
 export function LangChips({ languages }) {
   return (
@@ -13,6 +13,20 @@ export function LangChips({ languages }) {
 }
 
 export function StatusPill({ status }) {
+  if (status === 'running') {
+    return (
+      <span className="pill pill-info">
+        <Loader2 size={14} className="spin" /> Running
+      </span>
+    )
+  }
+  if (status === 'failed') {
+    return (
+      <span className="pill pill-danger">
+        <CircleX size={14} /> Failed
+      </span>
+    )
+  }
   if (status === 'needs_review') {
     return (
       <span className="pill pill-warning">
@@ -52,4 +66,36 @@ export function Loading() {
 
 export function ErrorState({ message }) {
   return <div className="error-state">Something went wrong: {message}</div>
+}
+
+/** Every run is labelled, so simulated results are never mistaken for real ones. */
+export function SourceTag({ source }) {
+  return source === 'live' ? (
+    <span className="tag tag-live" title="Real answers from the assistant under test">Live</span>
+  ) : (
+    <span className="tag tag-sample" title="Simulated sample data, not real findings">Sample</span>
+  )
+}
+
+/**
+ * Renders model output as text: keeps line breaks, turns **bold** into <strong> and leading
+ * "* " / "- " into bullets. Never injects HTML, so model output cannot run scripts.
+ */
+export function FormattedText({ text, lang }) {
+  if (!text) return null
+  return (
+    <div className="formatted" lang={lang}>
+      {text.split('\n').map((line, i) => {
+        const bullet = /^\s*[*-]\s+/.test(line)
+        const content = bullet ? line.replace(/^\s*[*-]\s+/, '') : line
+        const parts = content.split('**').map((part, j) => (j % 2 === 1 ? <strong key={j}>{part}</strong> : part))
+        if (!content.trim()) return <div key={i} className="formatted-gap" />
+        return (
+          <p key={i} className={bullet ? 'formatted-bullet' : undefined}>
+            {parts}
+          </p>
+        )
+      })}
+    </div>
+  )
 }

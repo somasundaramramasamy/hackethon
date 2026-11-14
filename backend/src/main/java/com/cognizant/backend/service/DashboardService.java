@@ -23,6 +23,7 @@ import com.cognizant.backend.dto.RunSummaryResponse;
 import com.cognizant.backend.entity.FailureCategory;
 import com.cognizant.backend.entity.Language;
 import com.cognizant.backend.entity.LanguageResult;
+import com.cognizant.backend.entity.RunStatus;
 import com.cognizant.backend.entity.TestRun;
 import com.cognizant.backend.repository.TestRunRepository;
 
@@ -42,7 +43,10 @@ public class DashboardService {
     }
 
     public DashboardResponse getDashboard() {
-        List<TestRun> runs = testRunRepository.findAllByOrderByStartedAtDesc(); // newest first
+        // Newest first; a run still in progress (or one that never produced results) is left out.
+        List<TestRun> runs = testRunRepository.findAllByOrderByStartedAtDesc().stream()
+                .filter(r -> r.getStatus() != RunStatus.RUNNING && r.getTotal() > 0)
+                .toList();
 
         Stats stats = buildStats(runs);
         return new DashboardResponse(
