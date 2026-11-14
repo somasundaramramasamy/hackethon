@@ -46,7 +46,10 @@ backend/src/main/java/com/cognizant/backend/
 ├── exception/    # 404 / 400 as problem-detail JSON
 └── config/       # CORS, DataSeeder (simulated sample data)
 ```
-Database: MySQL `cognizant` on localhost:3306 (settings in `backend/src/main/resources/application.properties`).
+Database: one shared, hosted MySQL `cognizant` for the whole team. Put `DB_URL`, `DB_USERNAME` and
+`DB_PASSWORD` in `backend/.env` (copy `backend/.env.example`; ask a teammate for the values). Without them the
+backend falls back to a local MySQL on localhost:3306 with user `root` and no password.
+Because everyone shares the database, a new migration reaches everyone the first time anyone starts the backend.
 Tables are created by Flyway from `backend/src/main/resources/db/migration/V1__create_core_tables.sql`
 on first start. Add schema changes as a new file (`V2__...sql`); never edit V1 once applied.
 Tests use an in-memory H2 database (`backend/src/test/resources/application.properties`) and never touch MySQL.

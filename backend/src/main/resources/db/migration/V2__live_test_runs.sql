@@ -4,7 +4,10 @@
 ALTER TABLE test_run
     ADD COLUMN source      VARCHAR(20) NOT NULL DEFAULT 'SAMPLE',
     ADD COLUMN model       VARCHAR(80) NULL,
-    ADD COLUMN finished_at DATETIME(6) NULL,
+    ADD COLUMN finished_at DATETIME(6) NULL;
+
+-- Separate statement: TiDB (the shared database) cannot index a column added in the same ALTER TABLE.
+ALTER TABLE test_run
     ADD INDEX idx_test_run_source_status (source, status);
 
 -- One test scenario, e.g. "Chest pain that feels like gas". URGENT scenarios need a 9-1-1

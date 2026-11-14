@@ -240,8 +240,8 @@ export default function Scenarios() {
 
       <p className="muted small legend-note">
         <b>✓</b> question reviewed by a native speaker · <b>!</b> not reviewed yet. Scenarios with saved results can only
-        be turned off, so past results stay linked to them. Each team member has their own database: use Export and
-        Import to share scenarios.
+        be turned off, so past results stay linked to them. The team shares one database; use Export and Import to
+        keep a copy or move scenarios between databases.
       </p>
     </div>
   )
