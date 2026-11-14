@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, NavLink, Outlet, useLocation, useMatches } from 'react-router-dom'
 import {
   House,
@@ -15,12 +15,14 @@ import {
   Menu,
   X,
   ChevronRight,
+  FlaskConical,
 } from 'lucide-react'
 import Logo from './Logo'
-import { getCurrentUser, getReviewQueueCount } from '../api/client'
+import { getCurrentUser, getPendingReviewCount } from '../api/client'
 
 const nav = [
   { to: '/', label: 'Dashboard', icon: House, end: true },
+  { to: '/live', label: 'Live Testing', icon: FlaskConical },
   { to: '/runs', label: 'Test Runs', icon: CirclePlay },
   { to: '/scenarios', label: 'Scenarios', icon: Layers },
   { to: '/reviews', label: 'Reviews', icon: ClipboardCheck, badge: true },
@@ -32,9 +34,16 @@ const nav = [
 
 export default function Layout() {
   const user = getCurrentUser()
-  const reviewCount = getReviewQueueCount()
+  const [reviewCount, setReviewCount] = useState(0)
   const [open, setOpen] = useState(false)
   const location = useLocation()
+
+  // Refresh the review badge on every navigation (a review may have just been submitted).
+  useEffect(() => {
+    getPendingReviewCount()
+      .then(setReviewCount)
+      .catch(() => setReviewCount(0))
+  }, [location.pathname])
   const [lastPath, setLastPath] = useState(location.pathname)
   const matches = useMatches()
   const match = [...matches].reverse().find((m) => m.handle?.header)
@@ -105,9 +114,6 @@ export default function Layout() {
             )}
           </div>
           <div className="topbar-right">
-            <span className="sample-chip" title="All figures are simulated until the backend is connected">
-              Sample data
-            </span>
             <button className="icon-btn bell" aria-label="Notifications">
               <Bell size={22} />
               <span className="bell-dot" />

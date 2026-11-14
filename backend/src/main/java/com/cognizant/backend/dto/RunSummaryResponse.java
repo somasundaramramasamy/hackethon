@@ -14,7 +14,9 @@ public record RunSummaryResponse(
         int passed,
         int failed,
         String status,
-        LocalDateTime startedAt) {
+        LocalDateTime startedAt,
+        String source,
+        String model) {
 
     public static RunSummaryResponse from(TestRun run) {
         return new RunSummaryResponse(
@@ -25,6 +27,8 @@ public record RunSummaryResponse(
                 run.getPassed(),
                 run.getFailed(),
                 ApiValues.of(run.getStatus()),
-                run.getStartedAt());
+                run.getStartedAt(),
+                ApiValues.of(run.getSource()),
+                run.getModel());
     }
 }

@@ -29,7 +29,7 @@ import {
   EyeOff,
 } from 'lucide-react'
 import { getRunReview, submitReview } from '../api/client'
-import { reviewOptions, verdictOptions } from '../api/mockData'
+import { reviewOptions, verdictOptions } from '../api/constants'
 import { Card, Loading, ErrorState } from '../components/ui'
 import { formatDate } from '../utils/format'
 

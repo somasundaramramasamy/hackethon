@@ -10,3 +10,7 @@ frontend/dist/
 
 # backend
 backend/target/
+
+# secrets: never commit API keys
+.env
+**/.env

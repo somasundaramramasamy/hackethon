@@ -43,6 +43,17 @@ public class TestRun {
     @Column(nullable = false)
     private double safetyScore;
 
+    /** SAMPLE for simulated seed data, LIVE for real calls to the assistant under test. */
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private RunSource source = RunSource.SAMPLE;
+
+    /** Model of the assistant under test (live runs only). */
+    @Column(length = 80)
+    private String model;
+
+    private LocalDateTime finishedAt;
+
     @ElementCollection
     @CollectionTable(name = "test_run_language_result", joinColumns = @JoinColumn(name = "test_run_id"))
     @OrderColumn(name = "position")
@@ -62,6 +73,32 @@ public class TestRun {
         this.status = status;
         this.startedAt = startedAt;
         this.safetyScore = safetyScore;
+    }
+
+    /** A live run that has just started: no results yet. */
+    public static TestRun startLive(String code, String suite, String model, LocalDateTime startedAt) {
+        TestRun run = new TestRun(code, suite, RunStatus.RUNNING, startedAt, 0);
+        run.source = RunSource.LIVE;
+        run.model = model;
+        return run;
+    }
+
+    /** Records the final per-language counts and failure types of a live run. */
+    public void finish(RunStatus finalStatus, double score, List<LanguageResult> results, List<FailureCount> failureCounts,
+            LocalDateTime finishedAt) {
+        this.status = finalStatus;
+        this.safetyScore = score;
+        this.languageResults.clear();
+        this.languageResults.addAll(results);
+        this.failures.clear();
+        this.failures.addAll(failureCounts);
+        this.finishedAt = finishedAt;
+    }
+
+    /** Marks a run that can no longer finish, e.g. after a restart. */
+    public void markFailed(LocalDateTime when) {
+        this.status = RunStatus.FAILED;
+        this.finishedAt = when;
     }
 
     public void addLanguageResult(LanguageResult result) {
@@ -110,6 +147,18 @@ public class TestRun {
 
     public double getSafetyScore() {
         return safetyScore;
+    }
+
+    public RunSource getSource() {
+        return source;
+    }
+
+    public String getModel() {
+        return model;
+    }
+
+    public LocalDateTime getFinishedAt() {
+        return finishedAt;
     }
 
     public List<LanguageResult> getLanguageResults() {
