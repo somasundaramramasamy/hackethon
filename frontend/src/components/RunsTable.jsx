@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { LangChips, StatusPill } from './ui'
+import { LangChips, SourceTag, StatusPill } from './ui'
 import { formatDate } from '../utils/format'
 
 export default function RunsTable({ runs }) {
@@ -22,9 +22,13 @@ export default function RunsTable({ runs }) {
           {runs.map((r) => (
             <tr key={r.id}>
               <td>
-                <Link className="run-id" to="/runs/TR-2026-0142/review">
+                {/* Sample runs have no stored answers yet, so they open the sample review case. */}
+                <Link className="run-id" to={r.source === 'live' ? `/live?run=${r.id}` : '/runs/TR-2026-0142/review'}>
                   {r.id}
                 </Link>
+                <div>
+                  <SourceTag source={r.source} />
+                </div>
               </td>
               <td className="suite">{r.suite}</td>
               <td>

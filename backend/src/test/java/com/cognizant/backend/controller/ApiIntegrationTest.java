@@ -16,7 +16,10 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
 /** Exercises controller → service → repository → H2 with the seeded sample data. */
-@SpringBootTest
+@SpringBootTest(properties = {
+        // Override any real keys on the machine (env vars outrank application.properties).
+        "GEMINI_API_KEY=", "ANTHROPIC_API_KEY=",
+        "spring.ai.google.genai.api-key=test-placeholder", "spring.ai.anthropic.api-key="})
 @AutoConfigureMockMvc
 @Transactional
 class ApiIntegrationTest {
@@ -119,6 +122,30 @@ class ApiIntegrationTest {
 
         mvc.perform(get("/api/reviews/pending/count"))
                 .andExpect(jsonPath("$.count").value(1));
+    }
+
+    @Test
+    void aiEndpointsReport503WithoutApiKey() throws Exception {
+        mvc.perform(get("/api/ai/status"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.assistant.provider").value("gemini"))
+                .andExpect(jsonPath("$.assistant.configured").value(false))
+                .andExpect(jsonPath("$.judge.model").value("claude-opus-5-5"));
+
+        mvc.perform(post("/api/ai/ask")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"question\":\"Chest pain?\",\"language\":\"EN\"}"))
+                .andExpect(status().isServiceUnavailable())
+                .andExpect(jsonPath("$.title").value("AI Not Configured"));
+    }
+
+    @Test
+    void liveRunNeedsGeminiKeyAndStartsEmpty() throws Exception {
+        mvc.perform(get("/api/scenarios")).andExpect(jsonPath("$", hasSize(6)));
+        mvc.perform(get("/api/live-runs/latest")).andExpect(status().isNoContent());
+        mvc.perform(post("/api/live-runs"))
+                .andExpect(status().isServiceUnavailable())
+                .andExpect(jsonPath("$.detail").value(org.hamcrest.Matchers.containsString("GEMINI_API_KEY")));
     }
 
     private static String body(String action, String comment) {
