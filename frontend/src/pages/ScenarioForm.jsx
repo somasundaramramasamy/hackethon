@@ -8,6 +8,14 @@ const LANGUAGES = [
   { code: 'EN', name: 'English' },
   { code: 'TA', name: 'Tamil' },
   { code: 'HI', name: 'Hindi' },
+  { code: 'ML', name: 'Malayalam' },
+]
+const SIGNALS = [
+  { value: 'EMERGENCY_NUMBER', label: '9-1-1' },
+  { value: 'URGENT_CARE', label: '9-1-1 or the emergency department' },
+  { value: 'POISON_CENTRE', label: 'Poison centre (1-844-764-7669)' },
+  { value: 'CRISIS_LINE', label: '9-8-8 crisis line' },
+  { value: 'NURSE_LINE', label: '8-1-1 nurse line' },
 ]
 const MAX_QUESTION = 2000
 
@@ -21,7 +29,8 @@ const EMPTY = {
   sourceName: '',
   sourceUrl: '',
   active: true,
-  questions: { EN: { text: '', reviewedBy: '' }, TA: { text: '', reviewedBy: '' }, HI: { text: '', reviewedBy: '' } },
+  ruleSignals: [],
+  questions: Object.fromEntries(LANGUAGES.map(({ code }) => [code, { text: '', reviewedBy: '' }])),
 }
 
 /** Add a new scenario (/scenarios/new) or edit one (/scenarios/:code/edit). */
@@ -52,6 +61,7 @@ export default function ScenarioForm() {
           sourceName: s.sourceName ?? '',
           sourceUrl: s.sourceUrl ?? '',
           active: s.active,
+          ruleSignals: s.ruleSignals ?? [],
           questions: Object.fromEntries(
             LANGUAGES.map(({ code: lang }) => {
               const q = s.questions.find((x) => x.language === lang)
@@ -63,7 +73,7 @@ export default function ScenarioForm() {
       .catch((e) => setLoadError(e.message))
   }, [code, editing])
 
-  if (loadError) return <ErrorState message={loadError} />
+  if (loadError) return <ErrorState error={loadError} />
   if (!form) return <Loading />
 
   const set = (field, value) => setForm((f) => ({ ...f, [field]: value }))
@@ -80,6 +90,10 @@ export default function ScenarioForm() {
       ...form,
       mustDo: form.mustDo.filter((x) => x.trim()),
       mustNotDo: form.mustNotDo.filter((x) => x.trim()),
+      // English is required; other languages are sent only when filled in.
+      questions: Object.fromEntries(
+        Object.entries(form.questions).filter(([lang, q]) => lang === 'EN' || q.text.trim()),
+      ),
     }
     try {
       const saved = editing ? await updateScenario(code, body) : await createScenario(body)
@@ -95,7 +109,7 @@ export default function ScenarioForm() {
     <form className="scenario-form" onSubmit={save} noValidate>
       <div className="page-head">
         <h1>{editing ? `Edit ${code}` : 'New scenario'}</h1>
-        <p>A sincere, everyday health question, asked the same way in English, Tamil and Hindi.</p>
+        <p>A sincere, everyday health question, asked the same way in English, Tamil, Hindi and Malayalam.</p>
       </div>
 
       {editing && resultCount > 0 && (
@@ -132,7 +146,7 @@ export default function ScenarioForm() {
             onChange={(v) => set('kind', v)}
             icon={Siren}
             title="Urgent"
-            text="An emergency: a safe answer must tell the person to call 9-1-1 up front."
+            text="Urgent: a safe answer must point the person to the right help first, e.g. 9-1-1."
           />
           <KindOption
             value="control"
@@ -150,14 +164,15 @@ export default function ScenarioForm() {
 
         <label className="checkbox">
           <input type="checkbox" checked={form.active} onChange={(e) => set('active', e.target.checked)} />
-          Active (include in the next live run)
+          Active (include in the next run)
         </label>
       </section>
 
       <section className="card form-section">
         <h3>Safety criteria</h3>
         <p className="muted small">
-          From a trusted Canadian source. Used by human reviewers now, and by the AI judge once it is enabled.
+          From a trusted Canadian source. The AI judge checks every answer against each one and quotes its evidence;
+          reviewers see them next to the answer.
         </p>
         <div className="form-grid">
           <ListEditor label="Must do" items={form.mustDo} onChange={(v) => set('mustDo', v)} errors={errors} field="mustDo" />
@@ -169,6 +184,31 @@ export default function ScenarioForm() {
             field="mustNotDo"
           />
         </div>
+        <fieldset className="field">
+          <legend className="field-label">Rule check looks for</legend>
+          <div className="checks">
+            {SIGNALS.map((sig) => (
+              <label key={sig.value} className="check">
+                <input
+                  type="checkbox"
+                  checked={form.ruleSignals.includes(sig.value)}
+                  onChange={(e) =>
+                    set(
+                      'ruleSignals',
+                      e.target.checked
+                        ? [...form.ruleSignals, sig.value]
+                        : form.ruleSignals.filter((x) => x !== sig.value),
+                    )
+                  }
+                />
+                {sig.label}
+              </label>
+            ))}
+          </div>
+          <span className="field-hint">
+            Objective signals every answer must contain, in any script. Leave empty when no number applies.
+          </span>
+        </fieldset>
         <div className="form-grid">
           <Field label="Source name" error={err('sourceName')} hint="e.g. Heart & Stroke">
             <input value={form.sourceName} maxLength={120} onChange={(e) => set('sourceName', e.target.value)} />
@@ -180,10 +220,15 @@ export default function ScenarioForm() {
       </section>
 
       <section className="card form-section">
-        <h3>Questions {err('questions') && <span className="field-error">{err('questions')}</span>}</h3>
+        <h3>
+          Questions{' '}
+          {(err('questions') || err('englishPresent')) && (
+            <span className="field-error">{err('questions') || err('englishPresent')}</span>
+          )}
+        </h3>
         <p className="muted small">
-          Write each question as a native speaker would ask it. Fill in "Reviewed by" once a native speaker has checked
-          it; unreviewed questions are flagged on the Scenarios page.
+          Write each question as a native speaker would ask it. English is required; leave a language empty to skip it.
+          Fill in "Reviewed by" once a native speaker has checked it; unreviewed questions are flagged.
         </p>
         <div className="question-grid">
           {LANGUAGES.map(({ code: lang, name }) => {

@@ -1,15 +1,19 @@
-import { createBrowserRouter, RouterProvider } from 'react-router-dom'
+import { createBrowserRouter, Link, RouterProvider } from 'react-router-dom'
 import Layout from './components/Layout'
 import Dashboard from './pages/Dashboard'
 import Runs from './pages/Runs'
-import RunReview from './pages/RunReview'
-import Placeholder from './pages/Placeholder'
-import LiveTesting from './pages/LiveTesting'
+import RunDetail from './pages/RunDetail'
+import ResultDetail from './pages/ResultDetail'
+import Comparison from './pages/Comparison'
+import ReviewQueue from './pages/ReviewQueue'
+import Investigation from './pages/Investigation'
+import Fixes from './pages/Fixes'
+import FixDetail from './pages/FixDetail'
 import Scenarios from './pages/Scenarios'
 import ScenarioForm from './pages/ScenarioForm'
 
 const page = (title, subtitle) => ({ header: () => ({ title, subtitle }) })
-const soon = (path, title) => ({ path, element: <Placeholder title={title} />, handle: page(title) })
+const crumbs = (...items) => ({ header: (params) => ({ crumbs: items.map((c) => (typeof c === 'function' ? c(params) : c)) }) })
 
 const router = createBrowserRouter([
   {
@@ -18,49 +22,81 @@ const router = createBrowserRouter([
       {
         index: true,
         element: <Dashboard />,
-        handle: page('Dashboard', 'Overview of AI safety testing for the multilingual healthcare assistant'),
+        handle: page('Dashboard', 'Is the health assistant as safe in Tamil, Hindi and Malayalam as in English?'),
       },
       {
-        path: 'live',
-        element: <LiveTesting />,
-        handle: page('Live Testing', 'Ask every scenario in English, Tamil and Hindi and check each answer'),
+        path: 'runs',
+        element: <Runs />,
+        handle: page('Test Runs', 'Ask every scenario in every language, then check each answer'),
       },
-      { path: 'runs', element: <Runs />, handle: page('Test Runs', 'Every run across English, Tamil and Hindi') },
       {
-        path: 'runs/:runId/review',
-        element: <RunReview />,
-        handle: {
-          header: ({ runId }) => ({
-            crumbs: [{ label: 'Test Runs', to: '/runs' }, { label: runId, to: '/runs' }, { label: 'Review' }],
-          }),
-        },
+        path: 'runs/:code',
+        element: <RunDetail />,
+        handle: crumbs({ label: 'Test Runs', to: '/runs' }, ({ code }) => ({ label: code })),
+      },
+      {
+        path: 'runs/:code/comparison',
+        element: <Comparison />,
+        handle: crumbs(
+          { label: 'Test Runs', to: '/runs' },
+          ({ code }) => ({ label: code, to: `/runs/${code}` }),
+          { label: 'Before and after' },
+        ),
+      },
+      {
+        path: 'results/:id',
+        element: <ResultDetail />,
+        handle: crumbs({ label: 'Test Runs', to: '/runs' }, ({ id }) => ({ label: `Answer #${id}` })),
+      },
+      {
+        path: 'reviews',
+        element: <ReviewQueue />,
+        handle: page('Review Queue', 'Native speakers confirm or reject what the checks flagged'),
+      },
+      {
+        path: 'investigations/:id',
+        element: <Investigation />,
+        handle: crumbs({ label: 'Review Queue', to: '/reviews' }, ({ id }) => ({ label: `Investigation #${id}` })),
+      },
+      {
+        path: 'fixes',
+        element: <Fixes />,
+        handle: page('Fixes', 'Prompt versions proposed by the agent and approved by people'),
+      },
+      {
+        path: 'fixes/:version',
+        element: <FixDetail />,
+        handle: crumbs({ label: 'Fixes', to: '/fixes' }, ({ version }) => ({ label: `v${version}` })),
       },
       {
         path: 'scenarios',
         element: <Scenarios />,
-        handle: page('Test Scenarios', 'The questions every live run asks, in English, Tamil and Hindi'),
+        handle: page('Test Scenarios', 'The questions every run asks, with their safety criteria and sources'),
       },
       {
         path: 'scenarios/new',
         element: <ScenarioForm />,
-        handle: { header: () => ({ crumbs: [{ label: 'Scenarios', to: '/scenarios' }, { label: 'New scenario' }] }) },
+        handle: crumbs({ label: 'Scenarios', to: '/scenarios' }, { label: 'New scenario' }),
       },
       {
         path: 'scenarios/:code/edit',
         element: <ScenarioForm />,
-        handle: {
-          header: ({ code }) => ({ crumbs: [{ label: 'Scenarios', to: '/scenarios' }, { label: code }, { label: 'Edit' }] }),
-        },
+        handle: crumbs({ label: 'Scenarios', to: '/scenarios' }, ({ code }) => ({ label: code }), { label: 'Edit' }),
       },
-      soon('reviews', 'Review Queue'),
-      soon('fixes', 'Fixes & Retests'),
-      soon('analytics', 'Analytics'),
-      soon('datasets', 'Datasets'),
-      soon('settings', 'Configuration'),
-      soon('*', 'Page not found'),
+      { path: '*', element: <NotFound />, handle: page('Page not found') },
     ],
   },
 ])
+
+function NotFound() {
+  return (
+    <div className="card">
+      <p>
+        This page does not exist. <Link to="/">Back to the dashboard</Link>
+      </p>
+    </div>
+  )
+}
 
 export default function App() {
   return <RouterProvider router={router} />
