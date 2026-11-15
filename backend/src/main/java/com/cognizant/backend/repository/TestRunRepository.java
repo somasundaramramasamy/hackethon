@@ -5,8 +5,8 @@ import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 
-import com.cognizant.backend.entity.RunSource;
 import com.cognizant.backend.entity.RunStatus;
+import com.cognizant.backend.entity.RunType;
 import com.cognizant.backend.entity.TestRun;
 
 public interface TestRunRepository extends JpaRepository<TestRun, Long> {
@@ -15,9 +15,15 @@ public interface TestRunRepository extends JpaRepository<TestRun, Long> {
 
     Optional<TestRun> findByCode(String code);
 
-    Optional<TestRun> findFirstBySourceOrderByStartedAtDesc(RunSource source);
+    Optional<TestRun> findFirstByOrderByStartedAtDesc();
 
-    boolean existsBySourceAndStatus(RunSource source, RunStatus status);
+    Optional<TestRun> findFirstByTypeAndStatusOrderByStartedAtDesc(RunType type, RunStatus status);
 
-    List<TestRun> findBySourceAndStatus(RunSource source, RunStatus status);
+    boolean existsByStatus(RunStatus status);
+
+    List<TestRun> findByStatus(RunStatus status);
+
+    List<TestRun> findByBaselineRunIdOrderByStartedAtDesc(Long baselineRunId);
+
+    List<TestRun> findByTypeAndPromptVersionOrderByStartedAtDesc(RunType type, Integer promptVersion);
 }

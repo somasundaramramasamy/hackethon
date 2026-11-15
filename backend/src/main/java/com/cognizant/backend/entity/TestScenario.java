@@ -2,7 +2,12 @@ package com.cognizant.backend.entity;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.EnumSet;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
@@ -60,6 +65,10 @@ public class TestScenario {
     @Column(length = 500)
     private String sourceUrl;
 
+    /** Signals the rule check requires, comma-separated (e.g. "EMERGENCY_NUMBER"); null = none. */
+    @Column(name = "rule_signals", length = 200)
+    private String ruleSignals;
+
     private LocalDateTime updatedAt;
 
     @ElementCollection
@@ -101,8 +110,10 @@ public class TestScenario {
     /** Replaces every editable field. Past results are unaffected: they store the question as asked. */
     public void update(String title, String category, ScenarioKind kind, String expectedBehaviour,
             List<String> mustDo, List<String> mustNotDo, String sourceName, String sourceUrl,
-            List<ScenarioQuestion> questions) {
+            Collection<RuleSignal> signals, List<ScenarioQuestion> questions) {
         this.title = title;
+        this.ruleSignals = signals == null || signals.isEmpty() ? null
+                : EnumSet.copyOf(signals).stream().map(Enum::name).collect(Collectors.joining(","));
         this.category = category;
         this.kind = kind;
         this.expectedBehaviour = expectedBehaviour;
@@ -164,6 +175,17 @@ public class TestScenario {
 
     public String getSourceUrl() {
         return sourceUrl;
+    }
+
+    /** The signals the rule check requires in every answer to this scenario. */
+    public Set<RuleSignal> getRuleSignals() {
+        if (ruleSignals == null || ruleSignals.isBlank()) {
+            return EnumSet.noneOf(RuleSignal.class);
+        }
+        return Arrays.stream(ruleSignals.split(","))
+                .map(String::strip)
+                .map(RuleSignal::valueOf)
+                .collect(Collectors.toCollection(() -> EnumSet.noneOf(RuleSignal.class)));
     }
 
     public LocalDateTime getUpdatedAt() {

@@ -130,7 +130,7 @@ public class ScenarioService {
     }
 
     private static void apply(TestScenario s, ScenarioRequest r) {
-        // Questions are always stored in EN, TA, HI order.
+        // Questions are always stored in EN, TA, HI, ML order.
         Map<Language, ScenarioRequest.QuestionInput> ordered = new EnumMap<>(Language.class);
         ordered.putAll(r.questions());
         List<ScenarioQuestion> questions = ordered.entrySet().stream()
@@ -139,7 +139,7 @@ public class ScenarioService {
                 .toList();
         s.update(r.title().strip(), r.category().strip(), kind(r.kind()), r.expected().strip(),
                 clean(r.mustDo()), clean(r.mustNotDo()), blankToNull(r.sourceName()), blankToNull(r.sourceUrl()),
-                questions);
+                r.ruleSignals(), questions);
     }
 
     String nextCode() {
@@ -173,7 +173,7 @@ public class ScenarioService {
     static ScenarioDetail toDetail(TestScenario s, long resultCount) {
         return new ScenarioDetail(s.getCode(), s.getTitle(), s.getCategory(), lower(s.getKind()),
                 s.getExpectedBehaviour(), s.getMustDo(), s.getMustNotDo(), s.getSourceName(), s.getSourceUrl(),
-                s.isActive(), s.getPosition(),
+                s.getRuleSignals().stream().map(Enum::name).toList(), s.isActive(), s.getPosition(),
                 s.getQuestions().stream()
                         .map(q -> new ScenarioDetail.Question(q.getLanguage().name(),
                                 q.getLanguage().getDisplayName(), q.getText(), q.getReviewedBy()))
@@ -187,7 +187,7 @@ public class ScenarioService {
                 new ScenarioRequest.QuestionInput(q.getText(), q.getReviewedBy())));
         return new ScenarioRequest(s.getCode(), s.getTitle(), s.getCategory(), lower(s.getKind()),
                 s.getExpectedBehaviour(), s.getMustDo(), s.getMustNotDo(), s.getSourceName(), s.getSourceUrl(),
-                s.isActive(), questions);
+                s.isActive(), List.copyOf(s.getRuleSignals()), questions);
     }
 
     private static ScenarioKind kind(String value) {

@@ -1,22 +1,20 @@
 package com.cognizant.backend.entity;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
 
-import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
-import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.OrderColumn;
 import jakarta.persistence.Table;
 
+/**
+ * One test run: questions asked to the assistant under test with one system prompt version, each
+ * answer checked by the rules and the judge. Results are stored in {@link TestResult}.
+ */
 @Entity
 @Table(name = "test_run")
 public class TestRun {
@@ -25,10 +23,11 @@ public class TestRun {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    /** Public run identifier, e.g. TR-1048. */
+    /** Public identifier, e.g. RUN-20261115-142233. */
     @Column(nullable = false, unique = true, length = 32)
     private String code;
 
+    /** Short human-readable description, e.g. "Baseline: 15 scenarios × 4 languages". */
     @Column(nullable = false, length = 120)
     private String suite;
 
@@ -36,93 +35,73 @@ public class TestRun {
     @Column(nullable = false, length = 20)
     private RunStatus status;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "run_type", nullable = false, length = 16)
+    private RunType type;
+
     @Column(nullable = false)
     private LocalDateTime startedAt;
 
-    /** Overall safety score for the run, as a percentage (0–100). */
+    private LocalDateTime finishedAt;
+
+    /** Share of checked answers that passed, as a percentage (0–100), set when the run finishes. */
     @Column(nullable = false)
     private double safetyScore;
 
-    /** SAMPLE for simulated seed data, LIVE for real calls to the assistant under test. */
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 20)
-    private RunSource source = RunSource.SAMPLE;
-
-    /** Model of the assistant under test (live runs only). */
-    @Column(length = 80)
+    /** Model of the assistant under test. */
+    @Column(length = 120)
     private String model;
 
-    private LocalDateTime finishedAt;
+    /** Model of the judge (and of the investigator agent for this run's results). */
+    @Column(length = 120)
+    private String judgeModel;
 
-    @ElementCollection
-    @CollectionTable(name = "test_run_language_result", joinColumns = @JoinColumn(name = "test_run_id"))
-    @OrderColumn(name = "position")
-    private List<LanguageResult> languageResults = new ArrayList<>();
+    /** System prompt version the assistant used. */
+    private Integer promptVersion;
 
-    @ElementCollection
-    @CollectionTable(name = "test_run_failure", joinColumns = @JoinColumn(name = "test_run_id"))
-    @OrderColumn(name = "position")
-    private List<FailureCount> failures = new ArrayList<>();
+    /** For a retest: the run whose failures it checks again. */
+    private Long baselineRunId;
+
+    /** How many times each question is asked; repeats show whether a failure is repeatable. */
+    @Column(nullable = false)
+    private int repeats;
+
+    /** Number of answers the run will collect (questions × repeats). */
+    @Column(nullable = false)
+    private int plannedTests;
+
+    @Column(length = 100)
+    private String startedBy;
 
     protected TestRun() {
     }
 
-    public TestRun(String code, String suite, RunStatus status, LocalDateTime startedAt, double safetyScore) {
+    public TestRun(String code, String suite, RunType type, String model, String judgeModel, int promptVersion,
+            Long baselineRunId, int repeats, int plannedTests, String startedBy, LocalDateTime startedAt) {
         this.code = code;
         this.suite = suite;
-        this.status = status;
+        this.type = type;
+        this.model = model;
+        this.judgeModel = judgeModel;
+        this.promptVersion = promptVersion;
+        this.baselineRunId = baselineRunId;
+        this.repeats = repeats;
+        this.plannedTests = plannedTests;
+        this.startedBy = startedBy;
         this.startedAt = startedAt;
-        this.safetyScore = safetyScore;
+        this.status = RunStatus.RUNNING;
     }
 
-    /** A live run that has just started: no results yet. */
-    public static TestRun startLive(String code, String suite, String model, LocalDateTime startedAt) {
-        TestRun run = new TestRun(code, suite, RunStatus.RUNNING, startedAt, 0);
-        run.source = RunSource.LIVE;
-        run.model = model;
-        return run;
-    }
-
-    /** Records the final per-language counts and failure types of a live run. */
-    public void finish(RunStatus finalStatus, double score, List<LanguageResult> results, List<FailureCount> failureCounts,
-            LocalDateTime finishedAt) {
+    public void finish(RunStatus finalStatus, double score, LocalDateTime when) {
         this.status = finalStatus;
         this.safetyScore = score;
-        this.languageResults.clear();
-        this.languageResults.addAll(results);
-        this.failures.clear();
-        this.failures.addAll(failureCounts);
-        this.finishedAt = finishedAt;
+        this.finishedAt = when;
     }
 
     /** Marks a run that can no longer finish, e.g. after a restart. */
     public void markFailed(LocalDateTime when) {
         this.status = RunStatus.FAILED;
         this.finishedAt = when;
-    }
-
-    public void addLanguageResult(LanguageResult result) {
-        languageResults.add(result);
-    }
-
-    public void addFailure(FailureCount failure) {
-        failures.add(failure);
-    }
-
-    public int getTotal() {
-        return languageResults.stream().mapToInt(LanguageResult::getTotal).sum();
-    }
-
-    public int getPassed() {
-        return languageResults.stream().mapToInt(LanguageResult::getPassed).sum();
-    }
-
-    public int getFailed() {
-        return languageResults.stream().mapToInt(LanguageResult::getFailed).sum();
-    }
-
-    public List<Language> getLanguages() {
-        return languageResults.stream().map(LanguageResult::getLanguage).toList();
     }
 
     public Long getId() {
@@ -141,31 +120,47 @@ public class TestRun {
         return status;
     }
 
+    public RunType getType() {
+        return type;
+    }
+
     public LocalDateTime getStartedAt() {
         return startedAt;
-    }
-
-    public double getSafetyScore() {
-        return safetyScore;
-    }
-
-    public RunSource getSource() {
-        return source;
-    }
-
-    public String getModel() {
-        return model;
     }
 
     public LocalDateTime getFinishedAt() {
         return finishedAt;
     }
 
-    public List<LanguageResult> getLanguageResults() {
-        return List.copyOf(languageResults);
+    public double getSafetyScore() {
+        return safetyScore;
     }
 
-    public List<FailureCount> getFailures() {
-        return List.copyOf(failures);
+    public String getModel() {
+        return model;
+    }
+
+    public String getJudgeModel() {
+        return judgeModel;
+    }
+
+    public Integer getPromptVersion() {
+        return promptVersion;
+    }
+
+    public Long getBaselineRunId() {
+        return baselineRunId;
+    }
+
+    public int getRepeats() {
+        return repeats;
+    }
+
+    public int getPlannedTests() {
+        return plannedTests;
+    }
+
+    public String getStartedBy() {
+        return startedBy;
     }
 }

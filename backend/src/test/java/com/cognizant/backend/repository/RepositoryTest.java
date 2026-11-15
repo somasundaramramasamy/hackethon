@@ -2,69 +2,91 @@ package com.cognizant.backend.repository;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 
-import com.cognizant.backend.entity.HumanReview;
+import com.cognizant.backend.entity.AssistantPrompt;
 import com.cognizant.backend.entity.Language;
-import com.cognizant.backend.entity.LanguageResult;
-import com.cognizant.backend.entity.ReviewAction;
-import com.cognizant.backend.entity.ReviewCase;
-import com.cognizant.backend.entity.ReviewStatus;
+import com.cognizant.backend.entity.PromptStatus;
+import com.cognizant.backend.entity.ResultVerdict;
 import com.cognizant.backend.entity.RunStatus;
+import com.cognizant.backend.entity.RunType;
+import com.cognizant.backend.entity.ScenarioKind;
+import com.cognizant.backend.entity.TestResult;
 import com.cognizant.backend.entity.TestRun;
+import com.cognizant.backend.entity.TestScenario;
 
-/** JPA slice: only repositories and H2, no seeder or web layer. */
+/** JPA slice: only repositories and H2, no seeding or web layer. */
 @DataJpaTest
 class RepositoryTest {
 
     @Autowired
-    private TestRunRepository testRuns;
+    private TestRunRepository runs;
 
     @Autowired
-    private ReviewCaseRepository reviewCases;
+    private TestResultRepository results;
 
     @Autowired
-    private HumanReviewRepository humanReviews;
+    private TestScenarioRepository scenarios;
+
+    @Autowired
+    private AssistantPromptRepository prompts;
 
     @Test
-    void ordersRunsNewestFirstAndKeepsLanguageResults() {
-        TestRun older = new TestRun("TR-1", "Suite A", RunStatus.COMPLETED, LocalDateTime.parse("2026-11-01T09:00"), 80);
-        older.addLanguageResult(new LanguageResult(Language.EN, 10, 9, 1));
-        TestRun newer = new TestRun("TR-2", "Suite B", RunStatus.COMPLETED, LocalDateTime.parse("2026-11-02T09:00"), 85);
-        newer.addLanguageResult(new LanguageResult(Language.EN, 10, 8, 1));
-        newer.addLanguageResult(new LanguageResult(Language.TA, 10, 6, 3));
-        testRuns.saveAll(java.util.List.of(older, newer));
+    void ordersRunsNewestFirstAndFindsTheLatestCompletedBaseline() {
+        TestRun older = run("RUN-1", RunType.BASELINE, "2026-11-01T09:00");
+        older.finish(RunStatus.COMPLETED, 80, LocalDateTime.parse("2026-11-01T09:05"));
+        TestRun newer = run("RT-2", RunType.RETEST, "2026-11-02T09:00");
+        runs.saveAll(java.util.List.of(older, newer));
 
-        var runs = testRuns.findAllByOrderByStartedAtDesc();
-
-        assertThat(runs).extracting(TestRun::getCode).containsExactly("TR-2", "TR-1");
-        assertThat(runs.get(0).getTotal()).isEqualTo(20);
-        assertThat(runs.get(0).getPassed()).isEqualTo(14);
-        assertThat(runs.get(0).getLanguages()).containsExactly(Language.EN, Language.TA);
-        assertThat(testRuns.findByCode("TR-1")).isPresent();
+        assertThat(runs.findAllByOrderByStartedAtDesc()).extracting(TestRun::getCode).containsExactly("RT-2", "RUN-1");
+        assertThat(runs.findFirstByTypeAndStatusOrderByStartedAtDesc(RunType.BASELINE,
+                RunStatus.COMPLETED)).map(TestRun::getCode).contains("RUN-1");
+        assertThat(runs.existsByStatus(RunStatus.RUNNING)).isTrue();
     }
 
     @Test
-    void findsReviewsByCaseCodeAndCountsPending() {
-        ReviewCase pending = reviewCases.save(newCase("TR-A"));
-        ReviewCase approved = newCase("TR-B");
-        approved.applyReviewAction(ReviewAction.APPROVE);
-        reviewCases.save(approved);
+    void reviewQueueHoldsFlaggedAndAuditedResultsUntilAPersonDecides() {
+        TestScenario s = scenarios.save(new TestScenario("SC-01", "Chest pain", "Heart", ScenarioKind.URGENT,
+                "Call 9-1-1", 1).ask(Language.EN, "My chest hurts"));
+        TestRun run = runs.save(run("RUN-1", RunType.BASELINE, "2026-11-01T09:00"));
+        TestResult failed = result(run, s, ResultVerdict.FAIL);
+        TestResult unsure = result(run, s, ResultVerdict.NEEDS_REVIEW);
+        TestResult passed = result(run, s, ResultVerdict.PASS);
+        TestResult audited = result(run, s, ResultVerdict.PASS);
+        audited.markAuditSample();
+        results.saveAll(java.util.List.of(failed, unsure, passed, audited));
 
-        humanReviews.save(new HumanReview(pending, "Acceptable", "Acceptable", "Acceptable", "Safe",
-                "Looks fine", ReviewAction.APPROVE, "Tester"));
+        assertThat(results.findReviewQueue()).containsExactlyInAnyOrder(failed, unsure, audited);
+        assertThat(results.countReviewQueue()).isEqualTo(3);
 
-        assertThat(reviewCases.countByReviewStatus(ReviewStatus.NEEDS_REVIEW)).isEqualTo(1);
-        assertThat(humanReviews.findByReviewCase_CodeOrderByCreatedAtDesc("TR-A")).hasSize(1);
-        assertThat(humanReviews.findByReviewCase_CodeOrderByCreatedAtDesc("TR-B")).isEmpty();
+        failed.review(ResultVerdict.FAIL, "Hameeda", null, Instant.now());
+        results.flush();
+        assertThat(results.countReviewQueue()).isEqualTo(2);
     }
 
-    private static ReviewCase newCase(String code) {
-        return new ReviewCase(code, "Title", "Category", "Model", LocalDateTime.parse("2026-11-10T10:00"),
-                "Prompt", 80, "Needs Human Review", "Reason");
+    @Test
+    void findsPromptVersionsByStatus() {
+        prompts.save(AssistantPrompt.initial("Be safe.", Instant.now()));
+        prompts.save(AssistantPrompt.proposal(2, "Be safer.", "Safer", null, 1, null, "agent:test", Instant.now()));
+
+        assertThat(prompts.findFirstByStatus(PromptStatus.ACTIVE)).map(AssistantPrompt::getVersion).contains(1);
+        assertThat(prompts.findMaxVersion()).isEqualTo(2);
+        assertThat(prompts.findAllByOrderByVersionDesc()).extracting(AssistantPrompt::getVersion).containsExactly(2, 1);
+    }
+
+    private static TestRun run(String code, RunType type, String startedAt) {
+        return new TestRun(code, "suite", type, "model", "judge", 1, null, 1, 4, "Tester",
+                LocalDateTime.parse(startedAt));
+    }
+
+    private static TestResult result(TestRun run, TestScenario s, ResultVerdict verdict) {
+        TestResult r = new TestResult(run, s, Language.EN, 1, "q", "a", "model", 10, Instant.now());
+        r.recordVerdict(verdict, "detail");
+        return r;
     }
 }

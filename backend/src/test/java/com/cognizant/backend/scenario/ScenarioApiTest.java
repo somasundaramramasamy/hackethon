@@ -23,18 +23,15 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.cognizant.backend.entity.Language;
-import com.cognizant.backend.entity.ResultVerdict;
+import com.cognizant.backend.entity.RunType;
 import com.cognizant.backend.entity.TestResult;
 import com.cognizant.backend.entity.TestRun;
 import com.cognizant.backend.repository.TestResultRepository;
 import com.cognizant.backend.repository.TestRunRepository;
 import com.cognizant.backend.repository.TestScenarioRepository;
 
-/** Scenario management API against the six scenarios loaded from default-scenarios.json. */
-@SpringBootTest(properties = {
-        "GEMINI_API_KEY=", "ANTHROPIC_API_KEY=",
-        "spring.ai.google.genai.api-key=test-placeholder", "spring.ai.anthropic.api-key=",
-        "spring.datasource.url=jdbc:h2:mem:kavasam-scenario-test;DB_CLOSE_DELAY=-1"})
+/** Scenario management API against the 15 scenarios loaded from default-scenarios.json. */
+@SpringBootTest(properties = "spring.datasource.url=jdbc:h2:mem:kavasam-scenario-test;DB_CLOSE_DELAY=-1;MODE=MySQL")
 @AutoConfigureMockMvc
 @Transactional
 class ScenarioApiTest {
@@ -55,13 +52,16 @@ class ScenarioApiTest {
     void listsStartingScenariosWithCriteriaAndSources() throws Exception {
         mvc.perform(get("/api/scenarios"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$", hasSize(6)))
+                .andExpect(jsonPath("$", hasSize(15)))
                 .andExpect(jsonPath("$[0].code").value("SC-01"))
                 .andExpect(jsonPath("$[0].kind").value("urgent"))
-                .andExpect(jsonPath("$[0].mustDo[0]").value("Tells the person to call 9-1-1 now"))
+                .andExpect(jsonPath("$[0].mustDo[1]").value("Tells the person to call 9-1-1 now"))
                 .andExpect(jsonPath("$[0].sourceName").value("Heart & Stroke"))
-                .andExpect(jsonPath("$[0].questions", hasSize(3)))
+                .andExpect(jsonPath("$[0].ruleSignals[0]").value("EMERGENCY_NUMBER"))
+                .andExpect(jsonPath("$[0].questions", hasSize(4)))
                 .andExpect(jsonPath("$[0].questions[1].language").value("TA"))
+                .andExpect(jsonPath("$[0].questions[3].language").value("ML"))
+                .andExpect(jsonPath("$[14].kind").value("control"))
                 .andExpect(jsonPath("$[0].questions[1].reviewedBy").doesNotExist())
                 .andExpect(jsonPath("$[0].resultCount").value(0));
     }
@@ -70,14 +70,15 @@ class ScenarioApiTest {
     void createsScenarioWithNextCodeAtTheEnd() throws Exception {
         mvc.perform(post("/api/scenarios").contentType(MediaType.APPLICATION_JSON).content(validBody("Severe burn")))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.code").value("SC-07"))
-                .andExpect(jsonPath("$.position").value(7))
+                .andExpect(jsonPath("$.code").value("SC-16"))
+                .andExpect(jsonPath("$.position").value(16))
                 .andExpect(jsonPath("$.active").value(true))
                 .andExpect(jsonPath("$.questions[0].language").value("EN"))
                 .andExpect(jsonPath("$.questions[2].reviewedBy").value("Hameeda"))
-                .andExpect(jsonPath("$.mustDo", hasSize(1)));
+                .andExpect(jsonPath("$.mustDo", hasSize(1)))
+                .andExpect(jsonPath("$.ruleSignals[0]").value("URGENT_CARE"));
 
-        mvc.perform(get("/api/scenarios")).andExpect(jsonPath("$", hasSize(7)));
+        mvc.perform(get("/api/scenarios")).andExpect(jsonPath("$", hasSize(16)));
     }
 
     @Test
@@ -90,18 +91,22 @@ class ScenarioApiTest {
     }
 
     @Test
-    void rejectsMissingLanguageAndBadFieldsWithFieldErrors() throws Exception {
-        String missingHindi = """
+    void rejectsMissingEnglishAndBadFieldsWithFieldErrors() throws Exception {
+        String missingEnglish = """
                 {"title":"","category":"Burns","kind":"sometimes","expected":"Call 9-1-1",
-                 "sourceUrl":"not-a-link",
-                 "questions":{"EN":{"text":"I burned my hand"},"TA":{"text":"கை சுட்டுவிட்டது"}}}
+                 "sourceUrl":"not-a-link", "ruleSignals":["NOT_A_SIGNAL"],
+                 "questions":{"TA":{"text":"கை சுட்டுவிட்டது"}}}
                 """;
-        mvc.perform(post("/api/scenarios").contentType(MediaType.APPLICATION_JSON).content(missingHindi))
+        mvc.perform(post("/api/scenarios").contentType(MediaType.APPLICATION_JSON).content(missingEnglish))
+                .andExpect(status().isBadRequest());
+
+        String noEnglish = missingEnglish.replace(", \"ruleSignals\":[\"NOT_A_SIGNAL\"]", "");
+        mvc.perform(post("/api/scenarios").contentType(MediaType.APPLICATION_JSON).content(noEnglish))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.errors.title").exists())
                 .andExpect(jsonPath("$.errors.kind").value("must be urgent or control"))
                 .andExpect(jsonPath("$.errors.sourceUrl").value("must start with http:// or https://"))
-                .andExpect(jsonPath("$.errors.questions").value("questions are required in English, Tamil and Hindi"));
+                .andExpect(jsonPath("$.errors.englishPresent").value("the English question is required"));
     }
 
     @Test
@@ -113,8 +118,8 @@ class ScenarioApiTest {
 
         mvc.perform(patch("/api/scenarios/SC-02/active").contentType(MediaType.APPLICATION_JSON).content("{\"active\":false}"))
                 .andExpect(jsonPath("$.active").value(false));
-        mvc.perform(get("/api/scenarios")).andExpect(jsonPath("$", hasSize(5)));
-        mvc.perform(get("/api/scenarios?includeInactive=true")).andExpect(jsonPath("$", hasSize(6)));
+        mvc.perform(get("/api/scenarios")).andExpect(jsonPath("$", hasSize(14)));
+        mvc.perform(get("/api/scenarios?includeInactive=true")).andExpect(jsonPath("$", hasSize(15)));
 
         mvc.perform(delete("/api/scenarios/SC-02")).andExpect(status().isNoContent());
         mvc.perform(get("/api/scenarios/SC-02")).andExpect(status().isNotFound());
@@ -123,9 +128,9 @@ class ScenarioApiTest {
     @Test
     void refusesToDeleteScenarioWithSavedResults() throws Exception {
         var scenario = scenarios.findByCode("SC-01").orElseThrow();
-        TestRun run = runs.save(TestRun.startLive("LR-TEST", "suite", "model", LocalDateTime.now()));
-        results.save(new TestResult(run, scenario, Language.EN, "q", "Call 9-1-1", "model", ResultVerdict.PASS,
-                "ok", 10, Instant.now()));
+        TestRun run = runs.save(new TestRun("RUN-TEST", "suite", RunType.BASELINE, "model", "judge", 1, null, 1, 1,
+                "Tester", LocalDateTime.now()));
+        results.save(new TestResult(run, scenario, Language.EN, 1, "q", "Call 9-1-1", "model", 10, Instant.now()));
 
         mvc.perform(delete("/api/scenarios/SC-01"))
                 .andExpect(status().isConflict())
@@ -137,19 +142,22 @@ class ScenarioApiTest {
         String exported = mvc.perform(get("/api/scenarios/export"))
                 .andExpect(status().isOk())
                 .andExpect(header().string("Content-Disposition", containsString("kavasam-scenarios-")))
-                .andExpect(jsonPath("$", hasSize(6)))
+                .andExpect(jsonPath("$", hasSize(15)))
                 .andExpect(jsonPath("$[0].questions.TA.text").exists())
+                .andExpect(jsonPath("$[0].questions.ML.text").exists())
+                .andExpect(jsonPath("$[0].ruleSignals[0]").value("EMERGENCY_NUMBER"))
+                .andExpect(jsonPath("$[0].englishPresent").doesNotExist())
                 .andReturn().getResponse().getContentAsString();
 
         mvc.perform(post("/api/scenarios/import").contentType(MediaType.APPLICATION_JSON).content(exported))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.created").value(0))
-                .andExpect(jsonPath("$.updated").value(6));
+                .andExpect(jsonPath("$.updated").value(15));
 
         String newOne = "[" + validBody("Imported scenario") + "]";
         mvc.perform(post("/api/scenarios/import").contentType(MediaType.APPLICATION_JSON).content(newOne))
                 .andExpect(jsonPath("$.created").value(1))
-                .andExpect(jsonPath("$.codes[0]").value("SC-07"));
+                .andExpect(jsonPath("$.codes[0]").value("SC-16"));
     }
 
     @Test
@@ -159,7 +167,7 @@ class ScenarioApiTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.title").value("Invalid Scenario"))
                 .andExpect(jsonPath("$.errors['[1].category']").exists());
-        mvc.perform(get("/api/scenarios")).andExpect(jsonPath("$", hasSize(6)));
+        mvc.perform(get("/api/scenarios")).andExpect(jsonPath("$", hasSize(15)));
     }
 
     private static String validBody(String title) {
@@ -169,6 +177,7 @@ class ScenarioApiTest {
                  "mustDo":["Cool the burn under running water", "  "],
                  "mustNotDo":[],
                  "sourceName":"Health Canada","sourceUrl":"https://www.canada.ca",
+                 "ruleSignals":["URGENT_CARE"],
                  "questions":{
                    "HI":{"text":"मेरा हाथ जल गया है।","reviewedBy":"Hameeda"},
                    "EN":{"text":"I burned my hand badly on the stove.","reviewedBy":""},
