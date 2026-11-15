@@ -4,17 +4,18 @@ import { Plus, Download, Upload, Pencil, Trash2, Siren, ShieldCheck, CircleAlert
 import {
   deleteScenario,
   exportScenarios,
-  getAiStatus,
   getAllScenarios,
   importScenarios,
   setScenarioActive,
 } from '../api/client'
 import { Card, ErrorState, Loading } from '../components/ui'
+import { useSettings } from '../state/settings'
 
 export default function Scenarios() {
   const location = useLocation()
+  const settings = useSettings()
+  const readOnly = Boolean(settings?.readOnly)
   const [scenarios, setScenarios] = useState(null)
-  const [dailyLimit, setDailyLimit] = useState(0)
   const [loadError, setLoadError] = useState(null)
   const [message, setMessage] = useState(location.state?.message ? { type: 'success', text: location.state.message } : null)
   const [busyCode, setBusyCode] = useState(null)
@@ -28,9 +29,6 @@ export default function Scenarios() {
 
   useEffect(() => {
     load()
-    getAiStatus()
-      .then((s) => setDailyLimit(s?.assistantDailyLimit ?? 0))
-      .catch(() => setDailyLimit(0))
   }, [load])
 
   async function toggle(s) {
@@ -100,12 +98,11 @@ export default function Scenarios() {
     }
   }
 
-  if (loadError) return <ErrorState message={loadError} />
+  if (loadError) return <ErrorState error={loadError} />
   if (!scenarios) return <Loading />
 
   const active = scenarios.filter((s) => s.active)
   const requests = active.reduce((n, s) => n + s.questions.length, 0)
-  const overLimit = dailyLimit > 0 && requests > dailyLimit
 
   return (
     <div className="scenarios-page">
@@ -116,31 +113,28 @@ export default function Scenarios() {
           </h2>
           <div className="meta">
             <span className="meta-chip">
-              Next run: {active.length} × 3 languages = <b>&nbsp;{requests} requests</b>
+              Next full run asks <b>&nbsp;{requests} questions</b>&nbsp;in up to 4 languages
             </span>
-            {dailyLimit > 0 && <span className="meta-chip plain">Gemini daily limit: {dailyLimit}</span>}
           </div>
         </div>
         <div className="toolbar">
           <button className="btn-secondary" onClick={downloadExport}>
             <Download size={16} /> Export
           </button>
-          <button className="btn-secondary" onClick={() => fileInput.current?.click()}>
-            <Upload size={16} /> Import
-          </button>
-          <input ref={fileInput} type="file" accept="application/json,.json" hidden onChange={handleImport} />
-          <Link to="/scenarios/new" className="btn-primary">
-            <Plus size={18} /> Add scenario
-          </Link>
+          {!readOnly && (
+            <>
+              <button className="btn-secondary" onClick={() => fileInput.current?.click()}>
+                <Upload size={16} /> Import
+              </button>
+              <input ref={fileInput} type="file" accept="application/json,.json" hidden onChange={handleImport} />
+              <Link to="/scenarios/new" className="btn-primary">
+                <Plus size={18} /> Add scenario
+              </Link>
+            </>
+          )}
         </div>
       </section>
 
-      {overLimit && (
-        <div className="notice notice-error">
-          <CircleAlert size={18} /> A full run needs {requests} requests, more than your Gemini daily limit of {dailyLimit}.
-          Turn some scenarios off, or the run will stop partway with quota errors.
-        </div>
-      )}
       {message && (
         <div className={`notice ${message.type === 'error' ? 'notice-error' : 'notice-success'}`} role="status">
           {message.type === 'error' ? <CircleAlert size={18} /> : <CircleCheck size={18} />}
@@ -166,6 +160,7 @@ export default function Scenarios() {
                 <th>Scenario</th>
                 <th>Type</th>
                 <th>Questions (native review)</th>
+                <th>Rule check looks for</th>
                 <th className="num">Results</th>
                 <th>Active</th>
                 <th>Actions</th>
@@ -201,13 +196,14 @@ export default function Scenarios() {
                       ))}
                     </span>
                   </td>
+                  <td className="small">{s.ruleSignals.length ? s.ruleSignals.map(signalLabel).join(', ') : '—'}</td>
                   <td className="num">{s.resultCount}</td>
                   <td>
-                    <label className="switch" title={s.active ? 'Included in the next run' : 'Skipped by live runs'}>
+                    <label className="switch" title={s.active ? 'Included in the next run' : 'Skipped by runs'}>
                       <input
                         type="checkbox"
                         checked={s.active}
-                        disabled={busyCode === s.code}
+                        disabled={busyCode === s.code || readOnly}
                         onChange={() => toggle(s)}
                         aria-label={`${s.code} active`}
                       />
@@ -215,13 +211,15 @@ export default function Scenarios() {
                     </label>
                   </td>
                   <td className="nowrap">
-                    <Link to={`/scenarios/${s.code}/edit`} className="icon-action" title="Edit">
-                      <Pencil size={16} />
-                    </Link>
+                    {!readOnly && (
+                      <Link to={`/scenarios/${s.code}/edit`} className="icon-action" title="Edit">
+                        <Pencil size={16} />
+                      </Link>
+                    )}
                     <button
                       className="icon-action danger"
                       onClick={() => remove(s)}
-                      disabled={s.resultCount > 0 || busyCode === s.code}
+                      disabled={s.resultCount > 0 || busyCode === s.code || readOnly}
                       title={
                         s.resultCount > 0
                           ? `Has ${s.resultCount} saved results: turn it off instead of deleting`
@@ -246,3 +244,12 @@ export default function Scenarios() {
     </div>
   )
 }
+
+const SIGNALS = {
+  EMERGENCY_NUMBER: '9-1-1',
+  URGENT_CARE: '9-1-1 or ER',
+  POISON_CENTRE: 'Poison centre',
+  CRISIS_LINE: '9-8-8',
+  NURSE_LINE: '8-1-1',
+}
+const signalLabel = (s) => SIGNALS[s] ?? s

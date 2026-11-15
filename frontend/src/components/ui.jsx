@@ -1,13 +1,19 @@
-import { CircleCheck, CircleX, TriangleAlert, Loader2 } from 'lucide-react'
+import { CircleCheck, CircleX, TriangleAlert, Loader2, Info, CircleDashed, Eye } from 'lucide-react'
 
-export function LangChips({ languages }) {
+const VERDICTS = {
+  pass: { label: 'Pass', className: 'pill-success', Icon: CircleCheck },
+  fail: { label: 'Fail', className: 'pill-danger', Icon: CircleX },
+  needs_review: { label: 'Needs review', className: 'pill-warning', Icon: TriangleAlert },
+  error: { label: 'Error', className: 'pill-muted', Icon: CircleDashed },
+  pending: { label: 'Pending', className: 'pill-muted', Icon: CircleDashed },
+}
+
+/** A verdict as a coloured pill: pass, fail, needs_review, error or pending. */
+export function Verdict({ value, label }) {
+  const v = VERDICTS[value] ?? VERDICTS.pending
   return (
-    <span className="lang-chips">
-      {languages.map((l) => (
-        <span key={l} className={`lang-chip lang-${l.toLowerCase()}`}>
-          {l}
-        </span>
-      ))}
+    <span className={`pill ${v.className}`}>
+      <v.Icon size={14} /> {label ?? v.label}
     </span>
   )
 }
@@ -27,16 +33,22 @@ export function StatusPill({ status }) {
       </span>
     )
   }
-  if (status === 'needs_review') {
-    return (
-      <span className="pill pill-warning">
-        <TriangleAlert size={14} /> Needs Review
-      </span>
-    )
-  }
   return (
     <span className="pill pill-success">
       <CircleCheck size={14} /> Completed
+    </span>
+  )
+}
+
+export function LangChip({ code }) {
+  return <span className={`lang-chip lang-${code.toLowerCase()}`}>{code}</span>
+}
+
+/** Marks a passed result that was picked at random for a human spot-check. */
+export function AuditTag() {
+  return (
+    <span className="tag tag-purple" title="A passed answer picked at random for a human spot-check">
+      <Eye size={12} /> Audit
     </span>
   )
 }
@@ -56,6 +68,16 @@ export function Card({ title, icon: Icon, action, className = '', children }) {
   )
 }
 
+export function Notice({ kind = 'info', children }) {
+  const Icon = kind === 'error' ? CircleX : kind === 'warning' ? TriangleAlert : Info
+  return (
+    <div className={`notice notice-${kind}`} role={kind === 'error' ? 'alert' : 'status'}>
+      <Icon size={18} />
+      <div>{children}</div>
+    </div>
+  )
+}
+
 export function Loading() {
   return (
     <div className="loading">
@@ -64,16 +86,16 @@ export function Loading() {
   )
 }
 
-export function ErrorState({ message }) {
-  return <div className="error-state">Something went wrong: {message}</div>
+export function ErrorState({ error }) {
+  return <Notice kind="error">{error?.message ?? String(error)}</Notice>
 }
 
-/** Every run is labelled, so simulated results are never mistaken for real ones. */
-export function SourceTag({ source }) {
-  return source === 'live' ? (
-    <span className="tag tag-live" title="Real answers from the assistant under test">Live</span>
-  ) : (
-    <span className="tag tag-sample" title="Simulated sample data, not real findings">Sample</span>
+export function Progress({ done, total }) {
+  const pct = total ? Math.round((100 * done) / total) : 0
+  return (
+    <div className="progress" aria-label={`${done} of ${total} done`}>
+      <div className="progress-fill" style={{ width: `${pct}%` }} />
+    </div>
   )
 }
 
@@ -96,6 +118,16 @@ export function FormattedText({ text, lang }) {
           </p>
         )
       })}
+    </div>
+  )
+}
+
+/** Before/after count for a fix, e.g. "3 fixed". */
+export function ChangeCount({ tone, value, label }) {
+  return (
+    <div className={`change-count change-${tone}`}>
+      <span className="change-value">{value}</span>
+      <span className="change-label">{label}</span>
     </div>
   )
 }
