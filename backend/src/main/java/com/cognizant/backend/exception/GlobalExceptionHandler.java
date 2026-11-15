@@ -14,15 +14,12 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
-import com.anthropic.errors.AnthropicIoException;
-import com.anthropic.errors.AnthropicServiceException;
-import com.anthropic.errors.RateLimitException;
-import com.cognizant.backend.ai.AiNotConfiguredException;
-import com.cognizant.backend.live.RunAlreadyActiveException;
+import com.cognizant.backend.llm.LlmException;
+import com.cognizant.backend.llm.LlmNotConfiguredException;
+import com.cognizant.backend.run.InvalidRunRequestException;
+import com.cognizant.backend.run.RunAlreadyActiveException;
 import com.cognizant.backend.scenario.InvalidScenarioException;
 import com.cognizant.backend.scenario.ScenarioInUseException;
-import com.google.genai.errors.ApiException;
-import com.google.genai.errors.GenAiIOException;
 
 /**
  * Returns errors as RFC 9457 problem details. The base class already covers malformed JSON (400)
@@ -33,99 +30,70 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 
     @ExceptionHandler(ResourceNotFoundException.class)
     ProblemDetail handleNotFound(ResourceNotFoundException ex) {
-        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, ex.getMessage());
-        problem.setTitle("Not Found");
-        return problem;
+        return problem(HttpStatus.NOT_FOUND, "Not Found", ex.getMessage());
     }
 
     @ExceptionHandler(ScenarioInUseException.class)
     ProblemDetail handleScenarioInUse(ScenarioInUseException ex) {
-        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
-        problem.setTitle("Scenario In Use");
-        return problem;
+        return problem(HttpStatus.CONFLICT, "Scenario In Use", ex.getMessage());
     }
 
     @ExceptionHandler(InvalidScenarioException.class)
     ProblemDetail handleInvalidScenario(InvalidScenarioException ex) {
-        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, ex.getMessage());
-        problem.setTitle("Invalid Scenario");
+        ProblemDetail problem = problem(HttpStatus.BAD_REQUEST, "Invalid Scenario", ex.getMessage());
         problem.setProperty("errors", ex.getErrors());
         return problem;
     }
 
+    @ExceptionHandler(InvalidRunRequestException.class)
+    ProblemDetail handleInvalidRun(InvalidRunRequestException ex) {
+        return problem(HttpStatus.BAD_REQUEST, "Invalid Request", ex.getMessage());
+    }
+
     @ExceptionHandler(RunAlreadyActiveException.class)
     ProblemDetail handleRunActive(RunAlreadyActiveException ex) {
-        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
-        problem.setTitle("Run In Progress");
-        return problem;
+        return problem(HttpStatus.CONFLICT, "Run In Progress", ex.getMessage());
     }
 
-    @ExceptionHandler(AiNotConfiguredException.class)
-    ProblemDetail handleAiNotConfigured(AiNotConfiguredException ex) {
-        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.SERVICE_UNAVAILABLE, ex.getMessage());
-        problem.setTitle("AI Not Configured");
-        return problem;
+    /** A state rule was broken, e.g. approving a version that is not proposed. */
+    @ExceptionHandler(NotAllowedException.class)
+    ProblemDetail handleConflict(NotAllowedException ex) {
+        return problem(HttpStatus.CONFLICT, "Not Allowed Now", ex.getMessage());
     }
 
-    @ExceptionHandler(RateLimitException.class)
-    ProblemDetail handleRateLimit(RateLimitException ex) {
-        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.TOO_MANY_REQUESTS,
-                "The model provider is rate limiting requests. Try again shortly.");
-        problem.setTitle("Rate Limited");
-        return problem;
+    @ExceptionHandler(LlmNotConfiguredException.class)
+    ProblemDetail handleNotConfigured(LlmNotConfiguredException ex) {
+        return problem(HttpStatus.SERVICE_UNAVAILABLE, "Model Not Configured", ex.getMessage());
     }
 
-    /** Errors returned by the Claude API (bad request, auth, overloaded, ...). */
-    @ExceptionHandler(AnthropicServiceException.class)
-    ProblemDetail handleModelError(AnthropicServiceException ex) {
-        logger.warn("Claude API call failed with HTTP " + ex.statusCode(), ex);
-        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_GATEWAY,
-                "The model call failed (HTTP " + ex.statusCode() + ").");
-        problem.setTitle("Model Error");
-        return problem;
+    @ExceptionHandler(LlmException.class)
+    ProblemDetail handleModelError(LlmException ex) {
+        logger.warn("Model call failed: " + ex.getMessage(), ex);
+        boolean rateLimited = ex.getStatus() == 429;
+        return problem(rateLimited ? HttpStatus.TOO_MANY_REQUESTS : HttpStatus.BAD_GATEWAY,
+                rateLimited ? "Rate Limited" : "Model Error",
+                rateLimited ? "The model provider is rate limiting requests. Try again shortly."
+                        : "The model call failed: " + ex.getMessage());
     }
 
-    @ExceptionHandler(AnthropicIoException.class)
-    ProblemDetail handleModelUnreachable(AnthropicIoException ex) {
-        logger.warn("Claude API unreachable", ex);
-        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_GATEWAY,
-                "Could not reach the model provider.");
-        problem.setTitle("Model Unreachable");
-        return problem;
-    }
-
-    /** Errors returned by the Gemini API. */
-    @ExceptionHandler(ApiException.class)
-    ProblemDetail handleGeminiError(ApiException ex) {
-        logger.warn("Gemini API call failed with HTTP " + ex.code() + " " + ex.status(), ex);
-        boolean rateLimited = ex.code() == 429;
-        ProblemDetail problem = ProblemDetail.forStatusAndDetail(
-                rateLimited ? HttpStatus.TOO_MANY_REQUESTS : HttpStatus.BAD_GATEWAY,
-                rateLimited ? "Gemini is rate limiting requests (free-tier quota?). Try again shortly."
-                        : "The Gemini call failed (HTTP " + ex.code() + ").");
-        problem.setTitle(rateLimited ? "Rate Limited" : "Model Error");
-        return problem;
-    }
-
-    @ExceptionHandler(GenAiIOException.class)
-    ProblemDetail handleGeminiUnreachable(GenAiIOException ex) {
-        logger.warn("Gemini API unreachable", ex);
-        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_GATEWAY,
-                "Could not reach Gemini.");
-        problem.setTitle("Model Unreachable");
-        return problem;
-    }
-
-    /** Adds an {@code errors} map of field → message, e.g. {"comment": "must not be blank"}. */
+    /** Adds an {@code errors} map of field → message, e.g. {"reviewer": "must not be blank"}. */
     @Override
     protected ResponseEntity<Object> handleMethodArgumentNotValid(MethodArgumentNotValidException ex,
             HttpHeaders headers, HttpStatusCode status, WebRequest request) {
         Map<String, String> errors = new LinkedHashMap<>();
         ex.getBindingResult().getFieldErrors()
                 .forEach(e -> errors.putIfAbsent(e.getField(), e.getDefaultMessage()));
+        ex.getBindingResult().getGlobalErrors()
+                .forEach(e -> errors.putIfAbsent(e.getObjectName(), e.getDefaultMessage()));
         ProblemDetail problem = ex.getBody();
         problem.setDetail("Validation failed");
         problem.setProperty("errors", errors);
         return handleExceptionInternal(ex, problem, headers, status, request);
+    }
+
+    private static ProblemDetail problem(HttpStatus status, String title, String detail) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(status, detail);
+        problem.setTitle(title);
+        return problem;
     }
 }

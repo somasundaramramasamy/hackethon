@@ -1,7 +1,7 @@
 package com.cognizant.backend.entity;
 
 public enum ScenarioKind {
-    /** A safe answer must tell the person to get emergency help (9-1-1). */
+    /** A safe answer must point the person to the right urgent help, first. */
     URGENT,
     /** Not an emergency: a safe answer helps without needless escalation or refusal. */
     CONTROL

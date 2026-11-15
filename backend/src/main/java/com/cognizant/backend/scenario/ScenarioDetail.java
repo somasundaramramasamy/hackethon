@@ -14,6 +14,7 @@ public record ScenarioDetail(
         List<String> mustNotDo,
         String sourceName,
         String sourceUrl,
+        List<String> ruleSignals,
         boolean active,
         int position,
         List<Question> questions,
