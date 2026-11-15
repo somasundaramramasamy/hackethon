@@ -14,3 +14,8 @@ backend/target/
 # secrets: never commit API keys
 .env
 **/.env
+
+# pilot results: review before publishing
+tools/pilot/results/
+__pycache__/
+*.pyc
