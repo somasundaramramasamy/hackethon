@@ -28,6 +28,7 @@ import com.cognizant.backend.llm.LlmNotConfiguredException;
 import com.cognizant.backend.prompt.PromptService;
 import com.cognizant.backend.repository.InvestigationRepository;
 import com.cognizant.backend.repository.TestResultRepository;
+import com.cognizant.backend.run.RunRecorder;
 
 import jakarta.annotation.PreDestroy;
 import tools.jackson.core.type.TypeReference;
@@ -148,11 +149,18 @@ public class InvestigationService {
                 i.getStartedBy(), i.getStartedAt(), i.getFinishedAt());
     }
 
-    /** Investigations left RUNNING by a restart can never finish. */
+    /**
+     * Investigations take about a minute; one still RUNNING after {@link RunRecorder#STALE_AFTER}
+     * has stopped. Younger ones may belong to another backend sharing the database, so they are left alone.
+     */
     @Transactional
     public int failStale() {
-        List<Investigation> stale = investigations.findByStatus(InvestigationStatus.RUNNING);
-        stale.forEach(i -> i.fail("The backend restarted before the investigation finished.", null, Instant.now()));
+        Instant cutoff = Instant.now().minus(RunRecorder.STALE_AFTER);
+        List<Investigation> stale = investigations.findByStatus(InvestigationStatus.RUNNING).stream()
+                .filter(i -> i.getStartedAt().isBefore(cutoff))
+                .toList();
+        stale.forEach(i -> i.fail("The investigation stopped before it finished (the backend restarted).", null,
+                Instant.now()));
         return stale.size();
     }
 

@@ -1,11 +1,13 @@
 package com.cognizant.backend.repository;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import com.cognizant.backend.entity.TestResult;
 
@@ -54,4 +56,8 @@ public interface TestResultRepository extends JpaRepository<TestResult, Long> {
                                      com.cognizant.backend.entity.ResultVerdict.FAIL)
             """)
     List<TestResult> findReviewedWithJudgeVerdict();
+
+    /** When the run last recorded an answer; null if it has none yet. */
+    @Query("select max(r.askedAt) from TestResult r where r.testRun.id = :runId")
+    Instant findLastAskedAt(@Param("runId") Long runId);
 }
