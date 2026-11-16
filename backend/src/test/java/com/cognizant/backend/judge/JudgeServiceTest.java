@@ -70,10 +70,10 @@ class JudgeServiceTest {
     }
 
     @Test
-    void dropsATranslationOfAnEnglishAnswer() {
+    void keepsATranslationWhenAnEnglishQuestionWasAnsweredInAnotherLanguage() {
         String reply = """
-                {"criteria":[],"translation":"same","decision":"FAIL","confidence":1,"reason":"x"}""";
-        assertThat(judge.read(reply, List.of(), Language.EN).translation()).isNull();
+                {"criteria":[],"translation":"Rest at home.","decision":"FAIL","confidence":1,"reason":"x"}""";
+        assertThat(judge.read(reply, List.of(), Language.EN).translation()).isEqualTo("Rest at home.");
     }
 
     @Test
