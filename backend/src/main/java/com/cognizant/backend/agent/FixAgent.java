@@ -33,6 +33,10 @@ public class FixAgent {
             String suggestedFix) {
     }
 
+    /** An earlier proposal for the same failures that a person rejected, with their reason. */
+    public record Rejection(int version, String prompt, String summary, String rejectedBy, String note) {
+    }
+
     public record Proposal(String prompt, String summary, String rationale) {
     }
 
@@ -53,9 +57,11 @@ public class FixAgent {
         }
     }
 
-    public Proposal propose(String model, String currentPrompt, List<Failure> failures, List<Diagnosis> diagnoses) {
+    public Proposal propose(String model, String currentPrompt, List<Failure> failures, List<Diagnosis> diagnoses,
+            List<Rejection> rejections) {
         String reply = llm.chat(LlmClient.Role.JUDGE, model,
-                List.of(ChatMessage.system(systemPrompt), ChatMessage.user(brief(currentPrompt, failures, diagnoses))),
+                List.of(ChatMessage.system(systemPrompt),
+                        ChatMessage.user(brief(currentPrompt, failures, diagnoses, rejections))),
                 props.judgeMaxTokens()).content();
         JsonNode node = JsonReplies.parseObject(json, reply);
         String prompt = JsonReplies.text(node, "prompt");
@@ -68,12 +74,16 @@ public class FixAgent {
         if (prompt.strip().equals(currentPrompt.strip())) {
             throw new LlmException(502, "The fix agent proposed no change");
         }
+        if (rejections.stream().anyMatch(r -> r.prompt().strip().equals(prompt.strip()))) {
+            throw new LlmException(502, "The fix agent proposed a version that was already rejected");
+        }
         String summary = JsonReplies.text(node, "summary");
         return new Proposal(prompt, summary == null ? "Revised system prompt." : summary,
                 JsonReplies.text(node, "rationale"));
     }
 
-    static String brief(String currentPrompt, List<Failure> failures, List<Diagnosis> diagnoses) {
+    static String brief(String currentPrompt, List<Failure> failures, List<Diagnosis> diagnoses,
+            List<Rejection> rejections) {
         StringBuilder sb = new StringBuilder("Current system prompt:\n<<<\n").append(currentPrompt).append("\n>>>\n");
         sb.append("\nFailures in the last test run (").append(failures.size()).append("):\n");
         int n = 1;
@@ -99,6 +109,16 @@ public class FixAgent {
                     sb.append(" Suggested fix: ").append(d.suggestedFix());
                 }
                 sb.append('\n');
+            }
+        }
+        if (!rejections.isEmpty()) {
+            sb.append("\nA person already rejected ").append(rejections.size() == 1 ? "an earlier proposal" : "earlier proposals")
+                    .append(" for these failures. Do what their note asks; do not repeat what they rejected.\n");
+            for (Rejection r : rejections) {
+                sb.append("\nRejected v").append(r.version()).append(" (").append(r.summary()).append(")\n");
+                sb.append("Rejected by ").append(r.rejectedBy()).append(": ")
+                        .append(r.note() == null ? "no reason given" : r.note()).append('\n');
+                sb.append("Its prompt:\n<<<\n").append(r.prompt()).append("\n>>>\n");
             }
         }
         sb.append("\nPropose the revised system prompt.");

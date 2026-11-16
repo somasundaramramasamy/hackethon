@@ -23,6 +23,7 @@ import com.cognizant.backend.exception.ResourceNotFoundException;
 import com.cognizant.backend.llm.LlmClient;
 import com.cognizant.backend.llm.LlmNotConfiguredException;
 import com.cognizant.backend.prompt.PromptService;
+import com.cognizant.backend.repository.AssistantPromptRepository;
 import com.cognizant.backend.repository.InvestigationRepository;
 import com.cognizant.backend.repository.TestResultRepository;
 import com.cognizant.backend.repository.TestRunRepository;
@@ -41,23 +42,28 @@ public class FixService {
 
     /** Failures sent to the agent at most; enough to show every pattern without a huge prompt. */
     static final int MAX_FAILURES = 24;
+    /** Earlier rejected proposals shown to the agent, newest last. */
+    static final int MAX_REJECTIONS = 3;
     static final int EXCERPT_CHARS = 500;
 
     private final TestRunRepository runs;
     private final TestResultRepository results;
     private final InvestigationRepository investigations;
     private final PromptService prompts;
+    private final AssistantPromptRepository promptRepository;
     private final RunService runService;
     private final FixAgent agent;
     private final LlmClient llm;
     private final TransactionTemplate tx;
 
     public FixService(TestRunRepository runs, TestResultRepository results, InvestigationRepository investigations,
-            PromptService prompts, RunService runService, FixAgent agent, LlmClient llm, TransactionTemplate tx) {
+            PromptService prompts, AssistantPromptRepository promptRepository, RunService runService, FixAgent agent,
+            LlmClient llm, TransactionTemplate tx) {
         this.runs = runs;
         this.results = results;
         this.investigations = investigations;
         this.prompts = prompts;
+        this.promptRepository = promptRepository;
         this.runService = runService;
         this.agent = agent;
         this.llm = llm;
@@ -65,7 +71,7 @@ public class FixService {
     }
 
     private record Input(TestRun run, String currentPrompt, List<FixAgent.Failure> failures,
-            List<FixAgent.Diagnosis> diagnoses) {
+            List<FixAgent.Diagnosis> diagnoses, List<FixAgent.Rejection> rejections) {
     }
 
     /** Asks the agent for a revised prompt that fixes the run's failures. Takes about half a minute. */
@@ -104,11 +110,20 @@ public class FixService {
                             i.getResult().getLanguage().getDisplayName(), i.getConclusion(), i.getFailureType(),
                             i.getDiagnosis(), i.getSuggestedFix()))
                     .toList();
-            return new Input(run, prompts.get(run.getPromptVersion()).getText(), failures, diagnoses);
+            List<FixAgent.Rejection> rejections = promptRepository
+                    .findByStatusAndSourceRunIdAndBasedOnVersionOrderByVersionAsc(PromptStatus.REJECTED, run.getId(),
+                            run.getPromptVersion())
+                    .stream()
+                    .map(p -> new FixAgent.Rejection(p.getVersion(), p.getText(), p.getSummary(), p.getDecidedBy(),
+                            p.getDecisionNote()))
+                    .toList();
+            // Only the latest few, so the brief stays focused.
+            rejections = rejections.subList(Math.max(0, rejections.size() - MAX_REJECTIONS), rejections.size());
+            return new Input(run, prompts.get(run.getPromptVersion()).getText(), failures, diagnoses, rejections);
         });
 
         FixAgent.Proposal proposal = agent.propose(input.run().getJudgeModel(), input.currentPrompt(),
-                input.failures(), input.diagnoses());
+                input.failures(), input.diagnoses(), input.rejections());
         AssistantPrompt saved = prompts.propose(proposal.prompt(), proposal.summary(), proposal.rationale(),
                 input.run().getPromptVersion(), input.run().getId(), "agent:" + input.run().getJudgeModel());
         log.info("Fix agent proposed prompt v{} for run {} ({} failures, {} diagnoses){}", saved.getVersion(),

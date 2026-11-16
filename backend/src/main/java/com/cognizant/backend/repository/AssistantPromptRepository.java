@@ -17,6 +17,10 @@ public interface AssistantPromptRepository extends JpaRepository<AssistantPrompt
 
     List<AssistantPrompt> findAllByOrderByVersionDesc();
 
+    /** Earlier rejected proposals for the same run and starting version, oldest first. */
+    List<AssistantPrompt> findByStatusAndSourceRunIdAndBasedOnVersionOrderByVersionAsc(PromptStatus status,
+            Long sourceRunId, Integer basedOnVersion);
+
     @Query("select coalesce(max(p.version), 0) from AssistantPrompt p")
     int findMaxVersion();
 }
