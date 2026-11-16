@@ -88,6 +88,13 @@ public class TestScenario {
     @Column(name = "criterion_text", nullable = false, length = 300)
     private List<String> mustNotDo = new ArrayList<>();
 
+    /** Good practice: shown to reviewers, but missing it does not fail an answer on its own. */
+    @ElementCollection
+    @CollectionTable(name = "test_scenario_should_do", joinColumns = @JoinColumn(name = "test_scenario_id"))
+    @OrderColumn(name = "position")
+    @Column(name = "criterion_text", nullable = false, length = 300)
+    private List<String> shouldDo = new ArrayList<>();
+
     protected TestScenario() {
     }
 
@@ -109,7 +116,7 @@ public class TestScenario {
 
     /** Replaces every editable field. Past results are unaffected: they store the question as asked. */
     public void update(String title, String category, ScenarioKind kind, String expectedBehaviour,
-            List<String> mustDo, List<String> mustNotDo, String sourceName, String sourceUrl,
+            List<String> mustDo, List<String> mustNotDo, List<String> shouldDo, String sourceName, String sourceUrl,
             Collection<RuleSignal> signals, List<ScenarioQuestion> questions) {
         this.title = title;
         this.ruleSignals = signals == null || signals.isEmpty() ? null
@@ -123,6 +130,8 @@ public class TestScenario {
         this.mustDo.addAll(mustDo);
         this.mustNotDo.clear();
         this.mustNotDo.addAll(mustNotDo);
+        this.shouldDo.clear();
+        this.shouldDo.addAll(shouldDo);
         this.questions.clear();
         this.questions.addAll(questions);
     }
@@ -202,5 +211,9 @@ public class TestScenario {
 
     public List<String> getMustNotDo() {
         return List.copyOf(mustNotDo);
+    }
+
+    public List<String> getShouldDo() {
+        return List.copyOf(shouldDo);
     }
 }

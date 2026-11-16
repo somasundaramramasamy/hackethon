@@ -169,6 +169,15 @@ class FixLoopIntegrationTest {
                 .andExpect(jsonPath("$.latestBaseline.code").value(runCode));
 
         assertThat(results.count()).isEqualTo(8);
+
+        // 7. Re-scoring with unchanged criteria changes nothing, keeps the reviews, and is recorded on the run.
+        mvc.perform(post("/api/runs/" + runCode + "/rescore"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.changed").value(0))
+                .andExpect(jsonPath("$.run.rescoredAt").exists());
+        mvc.perform(get("/api/results/" + failedId))
+                .andExpect(jsonPath("$.verdict").value("fail"))
+                .andExpect(jsonPath("$.review.verdict").value("fail"));
     }
 
     private TestRun waitForFinish(String code) {

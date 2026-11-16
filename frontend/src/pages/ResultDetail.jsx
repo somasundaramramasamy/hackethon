@@ -99,6 +99,12 @@ export default function ResultDetail() {
             <ul className="plain-list small">{r.scenario.mustDo.map((c) => <li key={c}>{c}</li>)}</ul>
             <h4 className="mini-head">Must not do</h4>
             <ul className="plain-list small">{r.scenario.mustNotDo.map((c) => <li key={c}>{c}</li>)}</ul>
+            {r.scenario.shouldDo?.length > 0 && (
+              <>
+                <h4 className="mini-head">Good practice (does not fail an answer)</h4>
+                <ul className="plain-list small">{r.scenario.shouldDo.map((c) => <li key={c}>{c}</li>)}</ul>
+              </>
+            )}
             {r.scenario.sourceUrl && (
               <a className="link small" href={r.scenario.sourceUrl} target="_blank" rel="noreferrer">
                 Source: {r.scenario.sourceName}
@@ -128,7 +134,14 @@ function CriteriaTable({ criteria, lang }) {
               )}
             </td>
             <td>
-              <div className="criteria-text">{c.criterion}</div>
+              <div className="criteria-text">
+                {c.criterion}
+                {c.type === 'SHOULD_DO' && (
+                  <span className="pill pill-muted criteria-kind" title="Shown for reviewers; does not fail an answer on its own">
+                    Good practice
+                  </span>
+                )}
+              </div>
               {c.evidence && (
                 <blockquote className="evidence" lang={lang}>
                   “{c.evidence}”

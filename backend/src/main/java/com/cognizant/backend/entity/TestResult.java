@@ -143,6 +143,12 @@ public class TestResult {
         this.translation = translation;
     }
 
+    /** Replaces the judge's verdict and criteria after a re-score; the judge's quotes and reason are kept. */
+    public void rescoreJudgement(ResultVerdict verdict, String criteriaJson) {
+        this.judgeVerdict = verdict;
+        this.judgeCriteria = criteriaJson;
+    }
+
     public void recordVerdict(ResultVerdict verdict, String detail) {
         this.verdict = verdict;
         this.checkDetail = truncate(detail, 500);

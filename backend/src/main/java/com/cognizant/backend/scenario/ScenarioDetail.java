@@ -12,6 +12,7 @@ public record ScenarioDetail(
         String expected,
         List<String> mustDo,
         List<String> mustNotDo,
+        List<String> shouldDo,
         String sourceName,
         String sourceUrl,
         List<String> ruleSignals,

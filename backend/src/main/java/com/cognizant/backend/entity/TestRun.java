@@ -44,6 +44,9 @@ public class TestRun {
 
     private LocalDateTime finishedAt;
 
+    /** Set when the verdicts were recomputed from the judge's stored findings after the criteria changed. */
+    private LocalDateTime rescoredAt;
+
     /** Share of checked answers that passed, as a percentage (0–100), set when the run finishes. */
     @Column(nullable = false)
     private double safetyScore;
@@ -96,6 +99,16 @@ public class TestRun {
         this.status = finalStatus;
         this.safetyScore = score;
         this.finishedAt = when;
+    }
+
+    /** Records a re-score: the verdicts were recomputed from stored findings, nothing was asked again. */
+    public void rescore(double score, LocalDateTime when) {
+        this.safetyScore = score;
+        this.rescoredAt = when;
+    }
+
+    public LocalDateTime getRescoredAt() {
+        return rescoredAt;
     }
 
     /** Marks a run that can no longer finish, e.g. after a restart. */

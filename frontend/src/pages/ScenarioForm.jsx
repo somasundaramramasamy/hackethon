@@ -26,6 +26,7 @@ const EMPTY = {
   expected: '',
   mustDo: [''],
   mustNotDo: [''],
+  shouldDo: [''],
   sourceName: '',
   sourceUrl: '',
   active: true,
@@ -58,6 +59,7 @@ export default function ScenarioForm() {
           expected: s.expected,
           mustDo: s.mustDo.length ? s.mustDo : [''],
           mustNotDo: s.mustNotDo.length ? s.mustNotDo : [''],
+          shouldDo: s.shouldDo?.length ? s.shouldDo : [''],
           sourceName: s.sourceName ?? '',
           sourceUrl: s.sourceUrl ?? '',
           active: s.active,
@@ -90,6 +92,7 @@ export default function ScenarioForm() {
       ...form,
       mustDo: form.mustDo.filter((x) => x.trim()),
       mustNotDo: form.mustNotDo.filter((x) => x.trim()),
+      shouldDo: form.shouldDo.filter((x) => x.trim()),
       // English is required; other languages are sent only when filled in.
       questions: Object.fromEntries(
         Object.entries(form.questions).filter(([lang, q]) => lang === 'EN' || q.text.trim()),
@@ -182,6 +185,13 @@ export default function ScenarioForm() {
             onChange={(v) => set('mustNotDo', v)}
             errors={errors}
             field="mustNotDo"
+          />
+          <ListEditor
+            label="Good practice (shown, but does not fail an answer)"
+            items={form.shouldDo}
+            onChange={(v) => set('shouldDo', v)}
+            errors={errors}
+            field="shouldDo"
           />
         </div>
         <fieldset className="field">

@@ -44,6 +44,16 @@ public class RunController {
         return queries.detail(code);
     }
 
+    /** Recomputes the run's verdicts from stored judge findings after the criteria changed. */
+    @PostMapping("/runs/{code}/rescore")
+    public RescoreResult rescore(@PathVariable String code) {
+        int changed = runService.rescore(code);
+        return new RescoreResult(changed, queries.summary(code));
+    }
+
+    public record RescoreResult(int changed, RunViews.RunSummary run) {
+    }
+
     @GetMapping("/runs/{code}/comparison")
     public RunViews.Comparison comparison(@PathVariable String code) {
         return queries.comparison(code);

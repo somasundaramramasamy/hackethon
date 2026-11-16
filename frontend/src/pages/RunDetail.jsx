@@ -57,6 +57,14 @@ export default function RunDetail() {
                 {run.startedBy && <span className="muted"> by {run.startedBy}</span>}
               </dd>
             </div>
+            {run.rescoredAt && (
+              <div>
+                <dt>Re-scored</dt>
+                <dd title="Verdicts recomputed from the judge's stored findings after the criteria changed; nothing was asked again">
+                  {formatDate(run.rescoredAt)}
+                </dd>
+              </div>
+            )}
           </dl>
         </div>
         {run.status === 'running' && (

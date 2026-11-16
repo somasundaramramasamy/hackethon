@@ -20,6 +20,7 @@ import jakarta.validation.constraints.Size;
  *
  * @param code   only used by import; new scenarios get the next free code (SC-07, SC-08, ...)
  * @param active only used by import; null means active
+ * @param shouldDo    good practice; missing it is shown but does not fail an answer on its own
  * @param ruleSignals what the rule check requires in every answer, e.g. EMERGENCY_NUMBER; empty = none
  * @param questions   the question per language; English is required, other languages are optional
  */
@@ -31,6 +32,7 @@ public record ScenarioRequest(
         @NotBlank @Size(max = 500) String expected,
         @Size(max = 10) List<@Size(max = 300) String> mustDo,
         @Size(max = 10) List<@Size(max = 300) String> mustNotDo,
+        @Size(max = 10) List<@Size(max = 300) String> shouldDo,
         @Size(max = 120) String sourceName,
         @Size(max = 500) @Pattern(regexp = "(https?://\\S+)?", message = "must start with http:// or https://")
         String sourceUrl,

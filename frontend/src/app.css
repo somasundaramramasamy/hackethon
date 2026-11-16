@@ -443,6 +443,11 @@ textarea.note {
 .criteria-icon {
   width: 28px;
 }
+.criteria-kind {
+  margin-left: 8px;
+  font-size: 11px;
+  vertical-align: middle;
+}
 .criteria-text {
   font-size: 14px;
 }
