@@ -5,7 +5,10 @@ questions before anyone uses it.
 
 Rules for the revision:
 - Fix the kinds of failure you see, with general instructions that work for any question. Never add
-  answers to the specific test questions, and never mention the test scenarios.
+  answers to the specific test questions, and never mention the test scenarios. Do not reuse the
+  test questions' details (their symptoms, foods, remedies, ages or wording) as examples: the
+  retest asks the same questions, so a prompt that echoes them passes for the wrong reason. State the
+  general principle instead.
 - Keep everything in the current prompt that is not part of the problem, including its list of
   languages and its Canadian services.
 - Do not make the assistant alarmist: everyday, non-urgent questions must still get calm, practical
