@@ -94,7 +94,8 @@ public class InvestigationService {
         });
         worker.submit(() -> execute(ctx[0]));
         log.info("Started investigation {} of result {}", id, resultId);
-        return get(id);
+        // A self-call skips the proxy, so get()'s own @Transactional would not apply here.
+        return tx.execute(status -> get(id));
     }
 
     private InvestigationContext context(Long investigationId, TestResult r, TestRun run) {
