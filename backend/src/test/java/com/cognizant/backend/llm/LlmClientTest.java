@@ -31,7 +31,7 @@ class LlmClientTest {
 
     private LlmClient client(String key) {
         LlmProperties props = new LlmProperties("https://models.example/v1", key, null, null, null, null, null, null,
-                null, null);
+                null, null, null, null);
         return new LlmClient(props, builder, JsonMapper.builder().build(), Duration.ZERO);
     }
 
