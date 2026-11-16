@@ -84,7 +84,7 @@ export default function Dashboard() {
             </Card>
             <Card title="Needs a person" icon={ShieldAlert}>
               <p className="big-number">{data.awaitingReview}</p>
-              <p className="muted">answers waiting for a native speaker: failures, unsure results and random audits.</p>
+              <p className="muted">answers in the latest run waiting for a native speaker: unsure results and random spot-checks.</p>
               <Link className="btn-primary inline" to="/reviews">
                 Open review queue <ArrowRight size={16} />
               </Link>

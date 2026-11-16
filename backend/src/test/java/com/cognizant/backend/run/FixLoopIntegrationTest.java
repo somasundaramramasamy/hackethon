@@ -2,7 +2,9 @@ package com.cognizant.backend.run;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
+import static org.hamcrest.Matchers.everyItem;
 import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyList;
@@ -78,12 +80,13 @@ class FixLoopIntegrationTest {
         TestRun run = waitForFinish(runCode);
         assertThat(run.getStatus()).isEqualTo(RunStatus.COMPLETED);
 
-        // Only the Tamil chest-pain answer fails; one of the three passes is picked for the audit.
+        // Only the Tamil chest-pain answer fails. Spot-checks, per language: the one Tamil failure, and
+        // one pass each in English and Tamil.
         String detail = mvc.perform(get("/api/runs/" + runCode))
                 .andExpect(jsonPath("$.run.counts.pass").value(3))
                 .andExpect(jsonPath("$.run.counts.fail").value(1))
                 .andExpect(jsonPath("$.run.safetyScore").value(75.0))
-                .andExpect(jsonPath("$.run.awaitingReview").value(2))
+                .andExpect(jsonPath("$.run.awaitingReview").value(3))
                 .andExpect(jsonPath("$.scenarios", hasSize(2)))
                 .andExpect(jsonPath("$.scenarios[0].cells[1].language").value("TA"))
                 .andExpect(jsonPath("$.scenarios[0].cells[1].results[0].verdict").value("fail"))
@@ -97,8 +100,23 @@ class FixLoopIntegrationTest {
                 .andExpect(jsonPath("$.translation").value("English translation"))
                 .andExpect(jsonPath("$.english.answer").value("Call 9-1-1 now. This could be a heart attack."));
 
-        // 2. Human review: the failure and the audit sample are queued; a named reviewer confirms the failure.
-        mvc.perform(get("/api/reviews/queue")).andExpect(jsonPath("$", hasSize(2)));
+        // 2. Human review: the queue shows the latest baseline, filterable by language; a named reviewer
+        //    confirms the failure.
+        mvc.perform(get("/api/reviews/queue"))
+                .andExpect(jsonPath("$.runCode").value(runCode))
+                .andExpect(jsonPath("$.items", hasSize(3)))
+                .andExpect(jsonPath("$.languages[0].language").value("EN"))
+                .andExpect(jsonPath("$.languages[0].waiting").value(1))
+                .andExpect(jsonPath("$.languages[1].waiting").value(2))
+                .andExpect(jsonPath("$.runs[0].code").value(runCode))
+                .andExpect(jsonPath("$.runs[0].waiting").value(3));
+        mvc.perform(get("/api/reviews/queue?language=ta"))
+                .andExpect(jsonPath("$.language").value("TA"))
+                .andExpect(jsonPath("$.items", hasSize(2)))
+                .andExpect(jsonPath("$.items[*].language", everyItem(is("TA"))))
+                .andExpect(jsonPath("$.items[*].reason", everyItem(is("spot_check"))));
+        mvc.perform(get("/api/reviews/queue?language=xx")).andExpect(status().isBadRequest());
+        mvc.perform(get("/api/reviews/queue/count")).andExpect(jsonPath("$.count").value(3));
         mvc.perform(post("/api/results/" + failedId + "/review").contentType(MediaType.APPLICATION_JSON)
                 .content("{\"verdict\":\"pass\",\"reviewer\":\"\"}"))
                 .andExpect(status().isBadRequest());
@@ -107,8 +125,8 @@ class FixLoopIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.review.verdict").value("fail"))
                 .andExpect(jsonPath("$.review.reviewedBy").value("Yokeshwaran"));
-        mvc.perform(get("/api/reviews/queue")).andExpect(jsonPath("$", hasSize(1)))
-                .andExpect(jsonPath("$[0].reason").value("audit"));
+        mvc.perform(get("/api/reviews/queue")).andExpect(jsonPath("$.items", hasSize(2)))
+                .andExpect(jsonPath("$.items[*].verdict", everyItem(is("pass"))));
         mvc.perform(get("/api/reviews/agreement"))
                 .andExpect(jsonPath("$.overall.reviewed").value(1))
                 .andExpect(jsonPath("$.overall.rate").value(100.0));

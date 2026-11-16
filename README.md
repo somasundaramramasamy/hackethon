@@ -84,7 +84,8 @@ lost in general failure.
 ```
  1. Ask          every scenario in every language, several times, to the assistant under test
  2. Check        a rule check (numbers, language, timing) and an AI judge (criteria + quoted evidence)
- 3. Review       a native speaker confirms or rejects every failure, plus a random 10% of passes
+ 3. Review       a native speaker checks what the checks could not decide, plus a spot-check
+                 of 20% of failures and 10% of passes in each language
  4. Investigate  the agent chooses its own follow-ups to find out why it fails       ── agentic
  5. Fix          the agent proposes a new system prompt version                        ── agentic
  6. Approve      a named person approves or rejects it
@@ -103,7 +104,8 @@ lost in general failure.
   answer in its original script and gives an English translation, so a clinician who does not read
   Tamil can still follow it.
 - **The judge is measured, not trusted.** The review queue reports how often the judge agrees with
-  people, including missed failures (judge said safe, a person said unsafe).
+  people, including missed failures (judge said safe, a person said unsafe). People review about a
+  fifth of the answers in the latest run (38 of 180), filtered to their own language.
 - **People stay in control.** Every review, approval, rejection and adoption is signed with a name,
   and the fix agent reads the reason for any rejected proposal before it tries again.
   Unreviewed results are labelled as such. A fix changes nothing until it is approved, retested and
@@ -208,7 +210,9 @@ tools/pilot/  the first local pilot with Ollama models, kept for reference
 
 - The questions and criteria are drafts until native speakers and a clinician review them.
 - 15 scenarios show patterns for these models; they do not measure how common failures are in general.
-- The judge can be wrong. That is why every failure goes to a person and agreement is reported.
+- The judge can be wrong. That is why undecided answers and a sample of failures and passes go to
+  a person, and the agreement rate is reported. A failure not in the sample stands as an automated
+  verdict until someone reviews it.
 - A prompt fix cannot fix everything a small model gets wrong; the retest shows what it did and did not fix.
 
 ## Team

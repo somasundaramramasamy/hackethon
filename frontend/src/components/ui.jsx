@@ -47,8 +47,8 @@ export function LangChip({ code }) {
 /** Marks a passed result that was picked at random for a human spot-check. */
 export function AuditTag() {
   return (
-    <span className="tag tag-purple" title="A passed answer picked at random for a human spot-check">
-      <Eye size={12} /> Audit
+    <span className="tag tag-purple" title="Picked at random for a human spot-check, so the automated verdicts are measured">
+      <Eye size={12} /> Spot-check
     </span>
   )
 }

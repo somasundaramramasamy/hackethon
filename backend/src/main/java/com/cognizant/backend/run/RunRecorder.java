@@ -16,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.cognizant.backend.check.RuleCheck;
 import com.cognizant.backend.check.VerdictPolicy;
+import com.cognizant.backend.entity.Language;
 import com.cognizant.backend.entity.ResultVerdict;
 import com.cognizant.backend.entity.RunStatus;
 import com.cognizant.backend.entity.RunType;
@@ -35,8 +36,10 @@ import tools.jackson.databind.json.JsonMapper;
 @Service
 public class RunRecorder {
 
-    /** Share of passed answers picked at random for a human spot-check. */
-    static final double AUDIT_SHARE = 0.10;
+    /** Share of passed answers, per language, picked at random for a human spot-check. */
+    static final double PASS_SPOT_CHECK_SHARE = 0.10;
+    /** Share of failed answers, per language, picked at random for a human spot-check. */
+    static final double FAIL_SPOT_CHECK_SHARE = 0.20;
 
     /** A run that has recorded nothing for this long has stopped. A healthy run answers every few seconds. */
     public static final Duration STALE_AFTER = Duration.ofMinutes(15);
@@ -112,26 +115,20 @@ public class RunRecorder {
                 test.language(), test.attempt(), test.question(), answer, model, durationMs, askedAt);
     }
 
-    /** Scores the run, picks the audit sample and closes it. */
+    /** Scores the run, picks the spot-checks and closes it. */
     @Transactional
     public void finishRun(Long runId) {
         TestRun run = runs.findById(runId).orElseThrow();
         List<TestResult> all = results.findByTestRun_IdOrderByIdAsc(runId);
         long checked = all.stream().filter(r -> r.getVerdict() != ResultVerdict.ERROR).count();
-
-        List<TestResult> passes = new ArrayList<>(all.stream().filter(r -> r.getVerdict() == ResultVerdict.PASS).toList());
-        Collections.shuffle(passes, random);
-        int sample = passes.isEmpty() ? 0 : Math.max(1, (int) Math.ceil(passes.size() * AUDIT_SHARE));
-        passes.subList(0, sample).forEach(TestResult::markAuditSample);
-
+        sampleSpotChecks(all);
         run.finish(checked == 0 ? RunStatus.FAILED : RunStatus.COMPLETED, score(all), LocalDateTime.now());
     }
 
     /**
      * Recomputes every verdict of a finished run from the judge's stored findings, after the
      * scenarios' criteria changed (e.g. a criterion moved to good practice). Nothing is asked again
-     * and people's reviews are kept. Passes that become new are topped up into the audit sample so it
-     * stays at least 10% of passes.
+     * and people's reviews are kept. The spot-checks are topped up to match the new verdicts.
      *
      * @return how many verdicts changed
      */
@@ -160,14 +157,57 @@ public class RunRecorder {
                 r.recordVerdict(combined.verdict(), note + combined.detail());
             }
         }
-        List<TestResult> passes = new ArrayList<>(all.stream().filter(r -> r.getVerdict() == ResultVerdict.PASS).toList());
-        long sampled = passes.stream().filter(TestResult::isAuditSample).count();
-        int wanted = passes.isEmpty() ? 0 : Math.max(1, (int) Math.ceil(passes.size() * AUDIT_SHARE));
-        List<TestResult> unsampled = new ArrayList<>(passes.stream().filter(r -> !r.isAuditSample()).toList());
-        Collections.shuffle(unsampled, random);
-        unsampled.stream().limit(Math.max(0, wanted - sampled)).forEach(TestResult::markAuditSample);
+        sampleSpotChecks(all);
         run.rescore(score(all), LocalDateTime.now());
         return changed;
+    }
+
+    /**
+     * Tops up the spot-checks of every finished run, e.g. after the sampling rules changed. Already
+     * picked or reviewed answers stay as they are.
+     *
+     * @return how many answers were newly picked
+     */
+    @Transactional
+    public int topUpSpotChecks() {
+        int picked = 0;
+        for (TestRun run : runs.findByStatus(RunStatus.COMPLETED)) {
+            picked += sampleSpotChecks(results.findByTestRun_IdOrderByIdAsc(run.getId()));
+        }
+        return picked;
+    }
+
+    /**
+     * Picks answers for a human spot-check, per language: 20% of failures and 10% of passes, at least
+     * one of each where there are any. Answers needing review are already queued. An answer already
+     * picked or reviewed counts towards the share, so calling this again only tops up.
+     *
+     * @return how many answers were newly picked
+     */
+    int sampleSpotChecks(List<TestResult> all) {
+        int picked = 0;
+        for (Language language : Language.values()) {
+            List<TestResult> inLanguage = all.stream().filter(r -> r.getLanguage() == language).toList();
+            picked += topUp(inLanguage.stream().filter(r -> r.getVerdict() == ResultVerdict.FAIL).toList(),
+                    FAIL_SPOT_CHECK_SHARE);
+            picked += topUp(inLanguage.stream().filter(r -> r.getVerdict() == ResultVerdict.PASS).toList(),
+                    PASS_SPOT_CHECK_SHARE);
+        }
+        return picked;
+    }
+
+    private int topUp(List<TestResult> group, double share) {
+        if (group.isEmpty()) {
+            return 0;
+        }
+        int wanted = Math.max(1, (int) Math.ceil(group.size() * share));
+        long covered = group.stream().filter(r -> r.isAuditSample() || r.getHumanVerdict() != null).count();
+        List<TestResult> candidates = new ArrayList<>(
+                group.stream().filter(r -> !r.isAuditSample() && r.getHumanVerdict() == null).toList());
+        Collections.shuffle(candidates, random);
+        int pick = (int) Math.max(0, Math.min(candidates.size(), wanted - covered));
+        candidates.subList(0, pick).forEach(TestResult::markAuditSample);
+        return pick;
     }
 
     private static double score(List<TestResult> all) {

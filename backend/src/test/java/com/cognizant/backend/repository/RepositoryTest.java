@@ -50,7 +50,7 @@ class RepositoryTest {
     }
 
     @Test
-    void reviewQueueHoldsFlaggedAndAuditedResultsUntilAPersonDecides() {
+    void reviewQueueHoldsUndecidedAndSpotCheckedResultsUntilAPersonDecides() {
         TestScenario s = scenarios.save(new TestScenario("SC-01", "Chest pain", "Heart", ScenarioKind.URGENT,
                 "Call 9-1-1", 1).ask(Language.EN, "My chest hurts"));
         TestRun run = runs.save(run("RUN-1", RunType.BASELINE, "2026-11-01T09:00"));
@@ -59,14 +59,18 @@ class RepositoryTest {
         TestResult passed = result(run, s, ResultVerdict.PASS);
         TestResult audited = result(run, s, ResultVerdict.PASS);
         audited.markAuditSample();
-        results.saveAll(java.util.List.of(failed, unsure, passed, audited));
+        TestResult checkedFailure = result(run, s, ResultVerdict.FAIL);
+        checkedFailure.markAuditSample();
+        results.saveAll(java.util.List.of(failed, unsure, passed, audited, checkedFailure));
 
-        assertThat(results.findReviewQueue()).containsExactlyInAnyOrder(failed, unsure, audited);
-        assertThat(results.countReviewQueue()).isEqualTo(3);
+        // A failure not picked for a spot-check stands without review.
+        assertThat(results.findReviewQueue(run.getId())).containsExactlyInAnyOrder(unsure, audited, checkedFailure);
+        assertThat(results.countReviewQueuePerRun()).singleElement()
+                .satisfies(row -> assertThat(row).containsExactly(run.getId(), 3L));
 
-        failed.review(ResultVerdict.FAIL, "Hameeda", null, Instant.now());
+        checkedFailure.review(ResultVerdict.FAIL, "Hameeda", null, Instant.now());
         results.flush();
-        assertThat(results.countReviewQueue()).isEqualTo(2);
+        assertThat(results.findReviewQueue(run.getId())).containsExactlyInAnyOrder(unsure, audited);
     }
 
     @Test

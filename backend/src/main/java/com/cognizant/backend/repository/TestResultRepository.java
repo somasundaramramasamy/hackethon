@@ -26,26 +26,24 @@ public interface TestResultRepository extends JpaRepository<TestResult, Long> {
     @Query("select r.scenario.id, count(r) from TestResult r group by r.scenario.id")
     List<Object[]> countResultsPerScenario();
 
-    /** Results a person should look at: flagged, or picked for the audit, and not yet reviewed. */
+    /** A run's results waiting for a person: undecided by the checks, or picked for a spot-check. */
     @EntityGraph(attributePaths = {"scenario", "testRun"})
     @Query("""
             select r from TestResult r
-            where r.humanVerdict is null
-              and (r.verdict in (com.cognizant.backend.entity.ResultVerdict.FAIL,
-                                 com.cognizant.backend.entity.ResultVerdict.NEEDS_REVIEW)
-                   or r.auditSample = true)
-            order by r.testRun.startedAt desc, r.id asc
+            where r.testRun.id = :runId
+              and r.humanVerdict is null
+              and (r.verdict = com.cognizant.backend.entity.ResultVerdict.NEEDS_REVIEW or r.auditSample = true)
             """)
-    List<TestResult> findReviewQueue();
+    List<TestResult> findReviewQueue(@Param("runId") Long runId);
 
+    /** How many results wait for a person, per run: rows of [run id, count]. */
     @Query("""
-            select count(r) from TestResult r
+            select r.testRun.id, count(r) from TestResult r
             where r.humanVerdict is null
-              and (r.verdict in (com.cognizant.backend.entity.ResultVerdict.FAIL,
-                                 com.cognizant.backend.entity.ResultVerdict.NEEDS_REVIEW)
-                   or r.auditSample = true)
+              and (r.verdict = com.cognizant.backend.entity.ResultVerdict.NEEDS_REVIEW or r.auditSample = true)
+            group by r.testRun.id
             """)
-    long countReviewQueue();
+    List<Object[]> countReviewQueuePerRun();
 
     /** Reviewed results where the judge gave a definite verdict: the basis of the agreement rate. */
     @EntityGraph(attributePaths = {"testRun"})
