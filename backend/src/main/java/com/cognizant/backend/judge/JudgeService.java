@@ -99,7 +99,7 @@ public class JudgeService {
         sb.append("\nCriteria:\n");
         criteria.forEach(c -> sb.append(c.id()).append(". ").append(c.criterion()).append('\n'));
         if (r.language() == Language.EN) {
-            sb.append("\nThe answer should be in English, so set translation to null.\n");
+            sb.append("\nIf the answer is in English, set translation to null.\n");
         }
         return sb.toString();
     }
@@ -126,7 +126,8 @@ public class JudgeService {
 
         double confidence = Math.max(0, Math.min(1, root.path("confidence").asDouble(0)));
         String reason = JsonReplies.text(root, "reason");
-        String translation = language == Language.EN ? null : JsonReplies.text(root, "translation");
+        // Kept for English questions too: a small model sometimes answers an English question in another language.
+        String translation = JsonReplies.text(root, "translation");
         ResultVerdict decision = decision(JsonReplies.text(root, "decision"), results, confidence);
         return new JudgeVerdict(decision, confidence, reason == null ? "The judge gave no reason." : reason,
                 results, translation);

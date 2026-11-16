@@ -1,0 +1,3 @@
+# False positive: the empty test key on this line ("kavasam.llm.judge-api-key=" followed by the next
+# setting) is not a secret. Tests never use real keys.
+b0da1f8d5c2e7300a3465ee32adbb16d1958aa20:backend/src/test/resources/application.properties:generic-api-key:11
