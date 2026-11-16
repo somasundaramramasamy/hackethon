@@ -1,7 +1,9 @@
 package com.cognizant.backend.run;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -35,6 +37,9 @@ public class RunRecorder {
 
     /** Share of passed answers picked at random for a human spot-check. */
     static final double AUDIT_SHARE = 0.10;
+
+    /** A run that has recorded nothing for this long has stopped. A healthy run answers every few seconds. */
+    public static final Duration STALE_AFTER = Duration.ofMinutes(15);
 
     private static final DateTimeFormatter CODE_FORMAT = DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss");
 
@@ -171,11 +176,29 @@ public class RunRecorder {
         return checked == 0 ? 0 : Math.round(1000.0 * passed / checked) / 10.0;
     }
 
-    /** Runs left RUNNING by a restart can never finish; close them so a new run can start. */
+    /**
+     * Closes runs that stopped making progress, e.g. after a crash, so a new run can start. The
+     * database may be shared by several backends, so a run is only stale once it has recorded
+     * nothing for {@link #STALE_AFTER}: a run another backend is still working on is left alone.
+     */
     @Transactional
     public int failStaleRuns() {
-        List<TestRun> stale = runs.findByStatus(RunStatus.RUNNING);
-        stale.forEach(r -> r.markFailed(LocalDateTime.now()));
-        return stale.size();
+        Instant now = Instant.now();
+        int closed = 0;
+        for (TestRun r : runs.findByStatus(RunStatus.RUNNING)) {
+            Instant last = results.findLastAskedAt(r.getId());
+            if (last == null) {
+                last = r.getStartedAt().atZone(ZoneId.systemDefault()).toInstant();
+            }
+            if (isStale(last, now)) {
+                r.markFailed(LocalDateTime.now());
+                closed++;
+            }
+        }
+        return closed;
+    }
+
+    static boolean isStale(Instant lastActivity, Instant now) {
+        return lastActivity.isBefore(now.minus(STALE_AFTER));
     }
 }

@@ -178,6 +178,8 @@ public class RunService {
     }
 
     private void requireIdle() {
+        // A run that crashed elsewhere would otherwise block new runs until someone restarts a backend.
+        recorder.failStaleRuns();
         if (isRunning()) {
             throw new RunAlreadyActiveException();
         }

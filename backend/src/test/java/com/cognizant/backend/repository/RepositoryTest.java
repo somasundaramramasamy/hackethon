@@ -79,6 +79,19 @@ class RepositoryTest {
         assertThat(prompts.findAllByOrderByVersionDesc()).extracting(AssistantPrompt::getVersion).containsExactly(2, 1);
     }
 
+    @Test
+    void findsWhenARunLastRecordedAnAnswer() {
+        TestScenario s = scenarios.save(new TestScenario("SC-01", "Chest pain", "Heart", ScenarioKind.URGENT,
+                "Call 9-1-1", 1).ask(Language.EN, "My chest hurts"));
+        TestRun run = runs.save(run("RUN-1", RunType.BASELINE, "2026-11-01T09:00"));
+        assertThat(results.findLastAskedAt(run.getId())).isNull();
+        Instant early = Instant.parse("2026-11-01T13:01:00Z");
+        Instant late = Instant.parse("2026-11-01T13:04:00Z");
+        results.save(new TestResult(run, s, Language.EN, 1, "q", "a", "model", 10, late));
+        results.save(new TestResult(run, s, Language.TA, 1, "q", "a", "model", 10, early));
+        assertThat(results.findLastAskedAt(run.getId())).isEqualTo(late);
+    }
+
     private static TestRun run(String code, RunType type, String startedAt) {
         return new TestRun(code, "suite", type, "model", "judge", 1, null, 1, 4, "Tester",
                 LocalDateTime.parse(startedAt));

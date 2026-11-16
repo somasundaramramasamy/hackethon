@@ -57,7 +57,7 @@ public class StartupLoader implements ApplicationRunner {
         int staleRuns = runs.failStaleRuns();
         int staleInvestigations = investigations.failStale();
         if (staleRuns + staleInvestigations > 0) {
-            log.warn("Closed {} run(s) and {} investigation(s) left unfinished by a restart", staleRuns,
+            log.warn("Closed {} run(s) and {} investigation(s) that had stopped making progress", staleRuns,
                     staleInvestigations);
         }
         if (prompts.seedIfEmpty()) {
