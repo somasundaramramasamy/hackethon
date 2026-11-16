@@ -36,13 +36,17 @@ public class LlmClient {
     private static final Logger log = LoggerFactory.getLogger(LlmClient.class);
 
     /** Attempts per call; transient failures (rate limits, overload, network) are retried. */
-    static final int MAX_ATTEMPTS = 3;
+    static final int MAX_ATTEMPTS = 4;
+    /** Rate limits wait this many times longer than other transient failures before a retry. */
+    static final int RATE_LIMIT_BACKOFF_FACTOR = 4;
 
     private final LlmProperties props;
     private final RestClient assistant;
     private final RestClient judge;
     private final JsonMapper json;
     private final Duration backoff;
+    private final RequestSpacer assistantSpacer;
+    private final RequestSpacer judgeSpacer;
 
     @Autowired
     public LlmClient(LlmProperties props, JsonMapper json) {
@@ -56,6 +60,8 @@ public class LlmClient {
         this.backoff = backoff;
         this.assistant = client(builder, props.baseUrl(), props.apiKey());
         this.judge = client(builder, props.judgeBaseUrl(), props.judgeApiKey());
+        this.assistantSpacer = new RequestSpacer(props.assistantRequestsPerMinute());
+        this.judgeSpacer = new RequestSpacer(props.judgeRequestsPerMinute());
     }
 
     private static JdkClientHttpRequestFactory requestFactory(LlmProperties props) {
@@ -93,16 +99,22 @@ public class LlmClient {
         body.put("messages", messages);
         body.put("max_tokens", maxTokens);
 
+        RequestSpacer spacer = role == Role.ASSISTANT ? assistantSpacer : judgeSpacer;
         for (int attempt = 1;; attempt++) {
             try {
+                spacer.acquire();
                 return send(role == Role.ASSISTANT ? assistant : judge, body);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new LlmException(0, "Interrupted while waiting to call the model");
             } catch (LlmException e) {
                 if (!e.isTransient() || attempt >= MAX_ATTEMPTS) {
                     throw e;
                 }
                 log.info("Model call to {} failed ({}); retrying, attempt {} of {}", model, e.getMessage(),
                         attempt + 1, MAX_ATTEMPTS);
-                pause(backoff.multipliedBy(attempt));
+                long factor = e.getStatus() == 429 ? RATE_LIMIT_BACKOFF_FACTOR : 1;
+                pause(backoff.multipliedBy(attempt * factor));
             }
         }
     }

@@ -18,6 +18,8 @@ import org.springframework.util.StringUtils;
  * @param assistantMaxTokens answer length cap for the assistant under test
  * @param judgeMaxTokens    response cap for the judge and the agent
  * @param concurrency       how many questions a run asks at the same time
+ * @param assistantRequestsPerMinute cap on calls to the assistant's endpoint; 0 = no cap
+ * @param judgeRequestsPerMinute     cap on calls to the judge's endpoint, e.g. a new account's limit; 0 = no cap
  * @param assistantModels   models offered as the assistant under test; the first is the default
  * @param judgeModels       models offered as the judge; the first is the default
  */
@@ -31,6 +33,8 @@ public record LlmProperties(
         Integer assistantMaxTokens,
         Integer judgeMaxTokens,
         Integer concurrency,
+        Integer assistantRequestsPerMinute,
+        Integer judgeRequestsPerMinute,
         List<ModelOption> assistantModels,
         List<ModelOption> judgeModels) {
 
@@ -43,6 +47,8 @@ public record LlmProperties(
         assistantMaxTokens = assistantMaxTokens == null ? 900 : assistantMaxTokens;
         judgeMaxTokens = judgeMaxTokens == null ? 4000 : judgeMaxTokens;
         concurrency = concurrency == null ? 4 : Math.max(1, Math.min(concurrency, 16));
+        assistantRequestsPerMinute = assistantRequestsPerMinute == null ? 0 : Math.max(0, assistantRequestsPerMinute);
+        judgeRequestsPerMinute = judgeRequestsPerMinute == null ? 0 : Math.max(0, judgeRequestsPerMinute);
         assistantModels = assistantModels == null || assistantModels.isEmpty()
                 ? List.of(new ModelOption("meta-llama/llama-3.2-3b-instruct", "Llama 3.2 3B (Meta)",
                         "Small open model an organization might host itself"))
