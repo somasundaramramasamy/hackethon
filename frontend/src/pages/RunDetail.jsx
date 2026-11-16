@@ -94,7 +94,7 @@ export default function RunDetail() {
               <Verdict value="needs_review" /> the checks disagree or the judge is unsure.
             </li>
             <li>
-              <AuditTag /> a pass picked at random for a person to spot-check.
+              <AuditTag /> picked at random for a person to check: 20% of failures and 10% of passes, per language.
             </li>
             <li>Nothing is a confirmed finding until a native speaker reviews it.</li>
           </ul>

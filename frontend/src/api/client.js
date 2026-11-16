@@ -45,7 +45,13 @@ export const getComparison = (code) => request(`/api/runs/${id(code)}/comparison
 export const getResult = (resultId) => request(`/api/results/${id(resultId)}`)
 
 // Human review
-export const getReviewQueue = () => request('/api/reviews/queue')
+export const getReviewQueue = ({ run, language } = {}) => {
+  const params = new URLSearchParams()
+  if (run) params.set('run', run)
+  if (language) params.set('language', language)
+  const query = params.toString()
+  return request(`/api/reviews/queue${query ? `?${query}` : ''}`)
+}
 export const getReviewQueueCount = () => request('/api/reviews/queue/count').then((r) => r.count)
 export const getAgreement = () => request('/api/reviews/agreement')
 export const submitReview = (resultId, body) => post(`/api/results/${id(resultId)}/review`, body)

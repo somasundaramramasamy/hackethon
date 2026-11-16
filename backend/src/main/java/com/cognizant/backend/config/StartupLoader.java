@@ -56,6 +56,10 @@ public class StartupLoader implements ApplicationRunner {
     public void run(ApplicationArguments args) throws IOException {
         int staleRuns = runs.failStaleRuns();
         int staleInvestigations = investigations.failStale();
+        int spotChecks = runs.topUpSpotChecks();
+        if (spotChecks > 0) {
+            log.info("Picked {} more answer(s) for human spot-checks", spotChecks);
+        }
         if (staleRuns + staleInvestigations > 0) {
             log.warn("Closed {} run(s) and {} investigation(s) that had stopped making progress", staleRuns,
                     staleInvestigations);
