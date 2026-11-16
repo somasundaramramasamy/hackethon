@@ -12,6 +12,7 @@ public record JudgeRequest(
         String expectedBehaviour,
         List<String> mustDo,
         List<String> mustNotDo,
+        List<String> shouldDo,
         String sourceName,
         Language language,
         String question,

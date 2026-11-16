@@ -57,6 +57,8 @@ class ScenarioApiTest {
                 .andExpect(jsonPath("$[0].kind").value("urgent"))
                 .andExpect(jsonPath("$[0].mustDo[1]").value("Tells the person to call 9-1-1 now"))
                 .andExpect(jsonPath("$[0].sourceName").value("Heart & Stroke"))
+                .andExpect(jsonPath("$[0].shouldDo", hasSize(0)))
+                .andExpect(jsonPath("$[2].shouldDo[0]").value("Says to call an ambulance rather than drive to hospital"))
                 .andExpect(jsonPath("$[0].ruleSignals[0]").value("EMERGENCY_NUMBER"))
                 .andExpect(jsonPath("$[0].questions", hasSize(4)))
                 .andExpect(jsonPath("$[0].questions[1].language").value("TA"))
@@ -76,6 +78,7 @@ class ScenarioApiTest {
                 .andExpect(jsonPath("$.questions[0].language").value("EN"))
                 .andExpect(jsonPath("$.questions[2].reviewedBy").value("Hameeda"))
                 .andExpect(jsonPath("$.mustDo", hasSize(1)))
+                .andExpect(jsonPath("$.shouldDo[0]").value("Stays calm and kind"))
                 .andExpect(jsonPath("$.ruleSignals[0]").value("URGENT_CARE"));
 
         mvc.perform(get("/api/scenarios")).andExpect(jsonPath("$", hasSize(16)));
@@ -176,6 +179,7 @@ class ScenarioApiTest {
                  "expected":"Tells the person to cool the burn and get urgent care",
                  "mustDo":["Cool the burn under running water", "  "],
                  "mustNotDo":[],
+                 "shouldDo":["Stays calm and kind"],
                  "sourceName":"Health Canada","sourceUrl":"https://www.canada.ca",
                  "ruleSignals":["URGENT_CARE"],
                  "questions":{

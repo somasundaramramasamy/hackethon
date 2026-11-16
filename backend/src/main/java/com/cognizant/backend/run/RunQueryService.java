@@ -88,7 +88,7 @@ public class RunQueryService {
         return new RunViews.ResultDetail(
                 r.getId(), run.getCode(), lower(run.getType()), run.getPromptVersion(),
                 new RunViews.ScenarioInfo(s.getCode(), s.getTitle(), lower(s.getKind()), s.getExpectedBehaviour(),
-                        s.getMustDo(), s.getMustNotDo(), s.getSourceName(), s.getSourceUrl()),
+                        s.getMustDo(), s.getMustNotDo(), s.getShouldDo(), s.getSourceName(), s.getSourceUrl()),
                 r.getLanguage().name(), r.getLanguage().getDisplayName(), r.getAttempt(), r.getQuestion(), r.getAnswer(),
                 r.getTranslation(), r.getModel(), run.getJudgeModel(), r.getDurationMs(), r.getAskedAt(),
                 lower(r.getVerdict()), r.getCheckDetail(),
@@ -161,7 +161,7 @@ public class RunQueryService {
         return new RunSummary(run.getCode(), lower(run.getType()), lower(run.getStatus()), run.getSuite(),
                 run.getModel(), run.getJudgeModel(), run.getPromptVersion(), baselineCode, run.getRepeats(),
                 run.getPlannedTests(), all.size(), run.getStartedBy(), run.getStartedAt(), run.getFinishedAt(),
-                run.getSafetyScore(), counts(all), languages, awaiting, reviewed);
+                run.getRescoredAt(), run.getSafetyScore(), counts(all), languages, awaiting, reviewed);
     }
 
     /** Counts by the reported verdict: a person's decision overrides the automated one. */

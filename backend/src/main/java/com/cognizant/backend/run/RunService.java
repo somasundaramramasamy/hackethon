@@ -23,6 +23,7 @@ import com.cognizant.backend.entity.ScenarioKind;
 import com.cognizant.backend.entity.TestResult;
 import com.cognizant.backend.entity.TestRun;
 import com.cognizant.backend.entity.TestScenario;
+import com.cognizant.backend.exception.NotAllowedException;
 import com.cognizant.backend.exception.ResourceNotFoundException;
 import com.cognizant.backend.llm.LlmClient;
 import com.cognizant.backend.llm.LlmNotConfiguredException;
@@ -157,6 +158,21 @@ public class RunService {
         return run;
     }
 
+    /**
+     * Recomputes a finished run's verdicts from the judge's stored findings against the scenarios'
+     * current criteria. Synchronized with starting runs, so it never races a run that is writing.
+     *
+     * @return how many verdicts changed
+     */
+    public synchronized int rescore(String code) {
+        TestRun run = runs.findByCode(code)
+                .orElseThrow(() -> new ResourceNotFoundException("Run " + code + " not found"));
+        if (run.getStatus() == RunStatus.RUNNING) {
+            throw new NotAllowedException("Run " + code + " is still running; re-score it when it has finished.");
+        }
+        return recorder.rescore(run.getId());
+    }
+
     public boolean isRunning() {
         return runs.existsByStatus(RunStatus.RUNNING);
     }
@@ -178,7 +194,7 @@ public class RunService {
 
     private static PlannedTest planned(TestScenario s, Language language, String question, int attempt) {
         return new PlannedTest(s.getId(), s.getTitle(), s.getKind(), s.getRuleSignals(), s.getExpectedBehaviour(),
-                s.getMustDo(), s.getMustNotDo(), s.getSourceName(), language, question, attempt);
+                s.getMustDo(), s.getMustNotDo(), s.getShouldDo(), s.getSourceName(), language, question, attempt);
     }
 
     private static String pick(String requested, String fallback, boolean offered, String role) {

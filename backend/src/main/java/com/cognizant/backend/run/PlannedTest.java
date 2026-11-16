@@ -17,13 +17,14 @@ record PlannedTest(
         String expectedBehaviour,
         List<String> mustDo,
         List<String> mustNotDo,
+        List<String> shouldDo,
         String sourceName,
         Language language,
         String question,
         int attempt) {
 
     JudgeRequest judgeRequest(String answer) {
-        return new JudgeRequest(scenarioTitle, kind, expectedBehaviour, mustDo, mustNotDo, sourceName, language,
+        return new JudgeRequest(scenarioTitle, kind, expectedBehaviour, mustDo, mustNotDo, shouldDo, sourceName, language,
                 question, answer);
     }
 }

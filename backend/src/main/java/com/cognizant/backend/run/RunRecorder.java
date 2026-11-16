@@ -19,11 +19,14 @@ import com.cognizant.backend.entity.RunStatus;
 import com.cognizant.backend.entity.RunType;
 import com.cognizant.backend.entity.TestResult;
 import com.cognizant.backend.entity.TestRun;
+import com.cognizant.backend.judge.CriterionResult;
+import com.cognizant.backend.judge.JudgeService;
 import com.cognizant.backend.judge.JudgeVerdict;
 import com.cognizant.backend.repository.TestResultRepository;
 import com.cognizant.backend.repository.TestRunRepository;
 import com.cognizant.backend.repository.TestScenarioRepository;
 
+import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.json.JsonMapper;
 
 /** Database writes for runs. Each method is its own transaction, so progress is visible as it happens. */
@@ -34,6 +37,9 @@ public class RunRecorder {
     static final double AUDIT_SHARE = 0.10;
 
     private static final DateTimeFormatter CODE_FORMAT = DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss");
+
+    private static final TypeReference<List<CriterionResult>> CRITERIA = new TypeReference<>() {
+    };
 
     private final TestRunRepository runs;
     private final TestScenarioRepository scenarios;
@@ -107,15 +113,62 @@ public class RunRecorder {
         TestRun run = runs.findById(runId).orElseThrow();
         List<TestResult> all = results.findByTestRun_IdOrderByIdAsc(runId);
         long checked = all.stream().filter(r -> r.getVerdict() != ResultVerdict.ERROR).count();
-        long passed = all.stream().filter(r -> r.getVerdict() == ResultVerdict.PASS).count();
 
         List<TestResult> passes = new ArrayList<>(all.stream().filter(r -> r.getVerdict() == ResultVerdict.PASS).toList());
         Collections.shuffle(passes, random);
         int sample = passes.isEmpty() ? 0 : Math.max(1, (int) Math.ceil(passes.size() * AUDIT_SHARE));
         passes.subList(0, sample).forEach(TestResult::markAuditSample);
 
-        double score = checked == 0 ? 0 : Math.round(1000.0 * passed / checked) / 10.0;
-        run.finish(checked == 0 ? RunStatus.FAILED : RunStatus.COMPLETED, score, LocalDateTime.now());
+        run.finish(checked == 0 ? RunStatus.FAILED : RunStatus.COMPLETED, score(all), LocalDateTime.now());
+    }
+
+    /**
+     * Recomputes every verdict of a finished run from the judge's stored findings, after the
+     * scenarios' criteria changed (e.g. a criterion moved to good practice). Nothing is asked again
+     * and people's reviews are kept. Passes that become new are topped up into the audit sample so it
+     * stays at least 10% of passes.
+     *
+     * @return how many verdicts changed
+     */
+    @Transactional
+    public int rescore(Long runId) {
+        TestRun run = runs.findById(runId).orElseThrow();
+        List<TestResult> all = results.findByTestRun_IdOrderByIdAsc(runId);
+        int changed = 0;
+        for (TestResult r : all) {
+            if (r.getJudgeCriteria() == null || r.getJudgeVerdict() == null
+                    || r.getJudgeVerdict() == ResultVerdict.ERROR || r.getAnswer() == null || r.getAnswer().isBlank()) {
+                continue; // nothing the judge assessed
+            }
+            List<CriterionResult> stored = json.readValue(r.getJudgeCriteria(), CRITERIA);
+            JudgeService.Reassessed again = JudgeService.reassess(stored, r.getScenario().getShouldDo(),
+                    r.getJudgeVerdict(), r.getJudgeConfidence() == null ? 0 : r.getJudgeConfidence());
+            r.rescoreJudgement(again.verdict(), json.writeValueAsString(again.criteria()));
+            RuleCheck.Outcome rule = new RuleCheck.Outcome(r.getRuleVerdict(), r.getRuleDetail());
+            VerdictPolicy.Combined combined = VerdictPolicy.combine(rule, again.verdict(), r.getJudgeReason());
+            if (combined.verdict() != r.getVerdict()) {
+                changed++;
+                String note = again.criteria().stream()
+                        .anyMatch(c -> !JudgeService.isCritical(c) && Boolean.FALSE.equals(c.satisfied()))
+                        ? "Re-scored: only good-practice criteria were missed. "
+                        : "Re-scored. ";
+                r.recordVerdict(combined.verdict(), note + combined.detail());
+            }
+        }
+        List<TestResult> passes = new ArrayList<>(all.stream().filter(r -> r.getVerdict() == ResultVerdict.PASS).toList());
+        long sampled = passes.stream().filter(TestResult::isAuditSample).count();
+        int wanted = passes.isEmpty() ? 0 : Math.max(1, (int) Math.ceil(passes.size() * AUDIT_SHARE));
+        List<TestResult> unsampled = new ArrayList<>(passes.stream().filter(r -> !r.isAuditSample()).toList());
+        Collections.shuffle(unsampled, random);
+        unsampled.stream().limit(Math.max(0, wanted - sampled)).forEach(TestResult::markAuditSample);
+        run.rescore(score(all), LocalDateTime.now());
+        return changed;
+    }
+
+    private static double score(List<TestResult> all) {
+        long checked = all.stream().filter(r -> r.getVerdict() != ResultVerdict.ERROR).count();
+        long passed = all.stream().filter(r -> r.getVerdict() == ResultVerdict.PASS).count();
+        return checked == 0 ? 0 : Math.round(1000.0 * passed / checked) / 10.0;
     }
 
     /** Runs left RUNNING by a restart can never finish; close them so a new run can start. */

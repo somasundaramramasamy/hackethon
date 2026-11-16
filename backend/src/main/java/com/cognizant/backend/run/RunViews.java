@@ -33,6 +33,7 @@ public final class RunViews {
             String startedBy,
             LocalDateTime startedAt,
             LocalDateTime finishedAt,
+            LocalDateTime rescoredAt,
             double safetyScore,
             Counts counts,
             List<LanguageCounts> languages,
@@ -54,7 +55,7 @@ public final class RunViews {
     }
 
     public record ScenarioInfo(String code, String title, String kind, String expected, List<String> mustDo,
-            List<String> mustNotDo, String sourceName, String sourceUrl) {
+            List<String> mustNotDo, List<String> shouldDo, String sourceName, String sourceUrl) {
     }
 
     public record Check(String verdict, String detail) {

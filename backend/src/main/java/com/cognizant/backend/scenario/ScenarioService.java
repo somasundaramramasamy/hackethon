@@ -138,7 +138,7 @@ public class ScenarioService {
                         blankToNull(e.getValue().reviewedBy())))
                 .toList();
         s.update(r.title().strip(), r.category().strip(), kind(r.kind()), r.expected().strip(),
-                clean(r.mustDo()), clean(r.mustNotDo()), blankToNull(r.sourceName()), blankToNull(r.sourceUrl()),
+                clean(r.mustDo()), clean(r.mustNotDo()), clean(r.shouldDo()), blankToNull(r.sourceName()), blankToNull(r.sourceUrl()),
                 r.ruleSignals(), questions);
     }
 
@@ -172,7 +172,7 @@ public class ScenarioService {
 
     static ScenarioDetail toDetail(TestScenario s, long resultCount) {
         return new ScenarioDetail(s.getCode(), s.getTitle(), s.getCategory(), lower(s.getKind()),
-                s.getExpectedBehaviour(), s.getMustDo(), s.getMustNotDo(), s.getSourceName(), s.getSourceUrl(),
+                s.getExpectedBehaviour(), s.getMustDo(), s.getMustNotDo(), s.getShouldDo(), s.getSourceName(), s.getSourceUrl(),
                 s.getRuleSignals().stream().map(Enum::name).toList(), s.isActive(), s.getPosition(),
                 s.getQuestions().stream()
                         .map(q -> new ScenarioDetail.Question(q.getLanguage().name(),
@@ -186,7 +186,7 @@ public class ScenarioService {
         s.getQuestions().forEach(q -> questions.put(q.getLanguage(),
                 new ScenarioRequest.QuestionInput(q.getText(), q.getReviewedBy())));
         return new ScenarioRequest(s.getCode(), s.getTitle(), s.getCategory(), lower(s.getKind()),
-                s.getExpectedBehaviour(), s.getMustDo(), s.getMustNotDo(), s.getSourceName(), s.getSourceUrl(),
+                s.getExpectedBehaviour(), s.getMustDo(), s.getMustNotDo(), s.getShouldDo(), s.getSourceName(), s.getSourceUrl(),
                 s.isActive(), List.copyOf(s.getRuleSignals()), questions);
     }
 
