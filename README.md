@@ -132,7 +132,7 @@ answers to them, never patient data.
 
 | Role | Offered by default |
 |---|---|
-| Assistant under test | Gemma 4 31B (the default, used in our measurements), Llama 3.2 3B, Gemma 3 4B, Llama 3.2 1B (small, self-hostable) |
+| Assistant under test | Gemma 4 31B (the default, used in our measurements), Llama 3.2 3B and Gemma 3 4B (small, self-hostable) |
 | Judge and agents | Claude Sonnet 5.5 |
 
 ## The test set
