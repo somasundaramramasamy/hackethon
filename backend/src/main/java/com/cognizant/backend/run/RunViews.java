@@ -103,7 +103,7 @@ public final class RunViews {
 
     /** How a scenario and language changed between a run and its retest. */
     public record CellChange(String scenarioCode, String scenarioTitle, String kind, String language,
-            String languageName, List<String> before, List<String> after, String change) {
+            String languageName, List<ResultBrief> before, List<ResultBrief> after, String change) {
     }
 
     public record ChangeCounts(int fixed, int stillFailing, int newFailures, int stillPassing) {

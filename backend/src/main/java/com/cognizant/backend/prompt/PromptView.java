@@ -11,6 +11,7 @@ import com.cognizant.backend.entity.AssistantPrompt;
  *
  * @param sourceRun  the run whose failures this version tries to fix
  * @param retestRuns retests of this version, newest first
+ * @param retesting  whether a retest of this version is still running
  */
 public record PromptView(
         int version,
@@ -21,15 +22,18 @@ public record PromptView(
         Integer basedOnVersion,
         String sourceRun,
         List<String> retestRuns,
+        boolean retesting,
         String createdBy,
         Instant createdAt,
         String decidedBy,
         Instant decidedAt,
         String decisionNote) {
 
-    public static PromptView of(AssistantPrompt p, String sourceRunCode, List<String> retestRuns) {
+    public static PromptView of(AssistantPrompt p, String sourceRunCode, List<String> retestRuns,
+            boolean retesting) {
         return new PromptView(p.getVersion(), p.getStatus().name().toLowerCase(Locale.ROOT), p.getText(),
-                p.getSummary(), p.getRationale(), p.getBasedOnVersion(), sourceRunCode, retestRuns, p.getCreatedBy(),
+                p.getSummary(), p.getRationale(), p.getBasedOnVersion(), sourceRunCode, retestRuns, retesting,
+                p.getCreatedBy(),
                 p.getCreatedAt(), p.getDecidedBy(), p.getDecidedAt(), p.getDecisionNote());
     }
 }

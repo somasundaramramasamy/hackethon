@@ -77,6 +77,10 @@ export default function ResultDetail() {
                 )}
               </div>
               <p className="judge-reason">{r.judge.reason}</p>
+              <p className="muted small judge-reason-note">
+                The judge&apos;s own summary. The verdict follows the critical criteria below; good practice is shown but
+                never fails an answer on its own.
+              </p>
               <CriteriaTable criteria={r.judge.criteria} lang={htmlLang(r.language)} />
             </>
           ) : (
@@ -135,6 +139,7 @@ function CriteriaTable({ criteria, lang }) {
             </td>
             <td>
               <div className="criteria-text">
+                <span className="criteria-id">{c.id}</span>
                 {c.criterion}
                 {c.type === 'SHOULD_DO' && (
                   <span className="pill pill-muted criteria-kind" title="Shown for reviewers; does not fail an answer on its own">

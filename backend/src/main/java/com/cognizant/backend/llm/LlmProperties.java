@@ -50,8 +50,8 @@ public record LlmProperties(
         assistantRequestsPerMinute = assistantRequestsPerMinute == null ? 0 : Math.max(0, assistantRequestsPerMinute);
         judgeRequestsPerMinute = judgeRequestsPerMinute == null ? 0 : Math.max(0, judgeRequestsPerMinute);
         assistantModels = assistantModels == null || assistantModels.isEmpty()
-                ? List.of(new ModelOption("meta-llama/llama-3.2-3b-instruct", "Llama 3.2 3B (Meta)",
-                        "Small open model an organization might host itself"))
+                ? List.of(new ModelOption("google/gemma-4-31b-it", "Gemma 4 31B (Google, open)",
+                        "Open model an organization might host itself"))
                 : List.copyOf(assistantModels);
         judgeModels = judgeModels == null || judgeModels.isEmpty()
                 ? List.of(new ModelOption("anthropic/claude-sonnet-5.5", "Claude Sonnet 5.5 (Anthropic)",

@@ -369,7 +369,12 @@ textarea.note {
   padding-bottom: 8px;
 }
 .why {
+  min-width: 260px;
   max-width: 420px;
+}
+.table-wrap.is-loading {
+  opacity: 0.5;
+  transition: opacity 0.15s;
 }
 
 /* Result page */
@@ -630,4 +635,21 @@ textarea.note {
 }
 .queue-reason {
   margin-top: 4px;
+}
+
+/* Criterion ids (C1, S1, ...) match the judge's own summary */
+.criteria-id {
+  display: inline-block;
+  min-width: 26px;
+  margin-right: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+}
+.judge-reason-note {
+  margin-top: -4px;
+}
+/* Long scenario titles wrap in the review queue so the table fits */
+.queue-answer {
+  white-space: normal;
 }

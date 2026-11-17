@@ -213,9 +213,7 @@ public class RunQueryService {
             list.stream()
                     .sorted((a, b) -> Integer.compare(a.getAttempt(), b.getAttempt()))
                     .forEach(r -> cells.computeIfAbsent(r.getLanguage(), k -> new ArrayList<>()).add(
-                            new ResultBrief(r.getId(), r.getAttempt(), lower(r.getVerdict()),
-                                    r.getHumanVerdict() == null ? null : lower(r.getHumanVerdict()),
-                                    lower(r.getEffectiveVerdict()), r.isAuditSample())));
+                            brief(r)));
             return new RunViews.ScenarioRow(s.getCode(), s.getTitle(), s.getCategory(), lower(s.getKind()),
                     cells.entrySet().stream()
                             .map(e -> new RunViews.Cell(e.getKey().name(), e.getKey().getDisplayName(), e.getValue()))
@@ -235,11 +233,17 @@ public class RunQueryService {
         return cells;
     }
 
-    private static List<String> verdicts(List<TestResult> list) {
+    private static List<ResultBrief> verdicts(List<TestResult> list) {
         return list.stream()
                 .sorted((a, b) -> Integer.compare(a.getAttempt(), b.getAttempt()))
-                .map(r -> lower(r.getEffectiveVerdict()))
+                .map(RunQueryService::brief)
                 .toList();
+    }
+
+    private static ResultBrief brief(TestResult r) {
+        return new ResultBrief(r.getId(), r.getAttempt(), lower(r.getVerdict()),
+                r.getHumanVerdict() == null ? null : lower(r.getHumanVerdict()), lower(r.getEffectiveVerdict()),
+                r.isAuditSample());
     }
 
     private List<CriterionResult> criteria(String stored) {

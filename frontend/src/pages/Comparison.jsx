@@ -101,15 +101,19 @@ export default function Comparison() {
                     </td>
                     <td>
                       <span className="verdict-row">
-                        {c.before.map((v, i) => (
-                          <Verdict key={i} value={v} />
+                        {c.before.map((r) => (
+                          <Link key={r.id} to={`/results/${r.id}`} className="cell-link" title={`Attempt ${r.attempt}`}>
+                            <Verdict value={r.effectiveVerdict} />
+                          </Link>
                         ))}
                       </span>
                     </td>
                     <td>
                       <span className="verdict-row">
-                        {c.after.map((v, i) => (
-                          <Verdict key={i} value={v} />
+                        {c.after.map((r) => (
+                          <Link key={r.id} to={`/results/${r.id}`} className="cell-link" title={`Attempt ${r.attempt}`}>
+                            <Verdict value={r.effectiveVerdict} />
+                          </Link>
                         ))}
                       </span>
                     </td>

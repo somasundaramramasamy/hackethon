@@ -74,8 +74,8 @@ critical criteria from good practice (shown to reviewers, but never failing an a
 and re-scored the run from the judge's saved findings without asking any model again. Before
 that, the pass rates were English 76%, Tamil 62%, Hindi 64% and Malayalam 73%.
 
-**Small models.** In single early runs, before this calibration, Llama 3.2 3B passed 7% and
-Gemma 3 4B 10% of 60 answers; Llama often answered English questions in Tamil or Hindi. We kept
+**Small models.** In single early runs (re-scored with the same criteria), Llama 3.2 3B passed 7%
+and Gemma 3 4B 12% of 60 answers; Llama often answered English questions in Tamil or Hindi. We kept
 the larger Gemma 4 31B as the assistant under test so the differences between languages are not
 lost in general failure.
 
@@ -130,7 +130,7 @@ The judge only ever sees the scripted test questions and the answers to them, ne
 
 | Role | Offered by default |
 |---|---|
-| Assistant under test | Llama 3.2 3B, Gemma 3 4B, Llama 3.2 1B (small, self-hostable), Gemma 4 31B (larger reference) |
+| Assistant under test | Gemma 4 31B (the default, used in our measurements), Llama 3.2 3B, Gemma 3 4B, Llama 3.2 1B (small, self-hostable) |
 | Judge and agents | Claude Sonnet 5.5, or Gemma 4 31B (an open model an organization can host itself) |
 
 ## The test set

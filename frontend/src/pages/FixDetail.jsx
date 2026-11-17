@@ -30,7 +30,7 @@ export default function FixDetail() {
         <div className="result-title">
           <Wrench size={22} className="card-icon" />
           <h2>System prompt v{p.version}</h2>
-          <PromptStatus status={p.status} />
+          <PromptStatus prompt={p} />
         </div>
         <p className="muted small">
           {p.createdBy.startsWith('agent:') ? `Proposed by the fix agent (${p.createdBy.slice(6)})` : `Created by ${p.createdBy}`}{' '}
