@@ -653,3 +653,10 @@ textarea.note {
 .queue-answer {
   white-space: normal;
 }
+
+/* A form value with only one option, shown as text */
+.field-static {
+  display: block;
+  padding: 9px 0;
+  font-weight: 500;
+}
