@@ -124,14 +124,16 @@ Every step of the investigator is saved and shown as a decision log.
 ### Models
 
 Any OpenAI-compatible endpoint works: OpenRouter by default, or an organization's own vLLM or Ollama
-server. The assistant under test and the judge are chosen per run, and the judge can use a separate
-endpoint, so an organization that cannot send data outside can keep the judge on its own servers.
-The judge only ever sees the scripted test questions and the answers to them, never patient data.
+server. The assistant under test is chosen per run. The judge is a different model from the
+assistant, so no model grades its own answers; we use Claude Sonnet 5.5, and every result in this
+README was judged by it. The judge can be pointed at a separate endpoint (`JUDGE_BASE_URL`), but we
+have not yet measured another judge. The judge only ever sees the scripted test questions and the
+answers to them, never patient data.
 
 | Role | Offered by default |
 |---|---|
 | Assistant under test | Gemma 4 31B (the default, used in our measurements), Llama 3.2 3B, Gemma 3 4B, Llama 3.2 1B (small, self-hostable) |
-| Judge and agents | Claude Sonnet 5.5, or Gemma 4 31B (an open model an organization can host itself) |
+| Judge and agents | Claude Sonnet 5.5 |
 
 ## The test set
 

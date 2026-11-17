@@ -85,13 +85,17 @@ function NewRun({ running }) {
         </label>
         <label className="field">
           <span className="field-label">Judge</span>
-          <select value={judge} onChange={(e) => setJudge(e.target.value)}>
-            {settings.judgeModels.map((m, i) => (
-              <option key={m.id} value={i === 0 ? '' : m.id}>
-                {m.label}
-              </option>
-            ))}
-          </select>
+          {settings.judgeModels.length > 1 ? (
+            <select value={judge} onChange={(e) => setJudge(e.target.value)}>
+              {settings.judgeModels.map((m, i) => (
+                <option key={m.id} value={i === 0 ? '' : m.id}>
+                  {m.label}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <span className="field-static">{settings.judgeModels[0]?.label}</span>
+          )}
           <span className="field-hint">{settings.judgeModels.find((m) => m.id === judge)?.note ?? settings.judgeModels[0]?.note}</span>
         </label>
         <label className="field">
