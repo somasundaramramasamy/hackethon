@@ -169,7 +169,6 @@ public class TestResult {
         this.reviewedAt = when;
     }
 
-    /** Whether a person should look at this result: flagged by the checks, or picked for the audit. */
     /**
      * Waiting for a person: the automated checks could not decide (NEEDS_REVIEW), or the answer was
      * picked for a spot-check. Other failures and passes stand unless someone reviews them.

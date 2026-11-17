@@ -93,6 +93,16 @@ class FixLoopIntegrationTest {
                 .andReturn().getResponse().getContentAsString();
         Integer failedId = JsonPath.read(detail, "$.scenarios[0].cells[1].results[0].id");
 
+        // The run list counts the same from one grouped query, without loading the answers.
+        mvc.perform(get("/api/runs"))
+                .andExpect(jsonPath("$[0].code").value(runCode))
+                .andExpect(jsonPath("$[0].completedTests").value(4))
+                .andExpect(jsonPath("$[0].counts.pass").value(3))
+                .andExpect(jsonPath("$[0].counts.fail").value(1))
+                .andExpect(jsonPath("$[0].awaitingReview").value(3))
+                .andExpect(jsonPath("$[0].languages[1].language").value("TA"))
+                .andExpect(jsonPath("$[0].languages[1].counts.fail").value(1));
+
         mvc.perform(get("/api/results/" + failedId))
                 .andExpect(jsonPath("$.rule.verdict").value("fail"))
                 .andExpect(jsonPath("$.judge.verdict").value("fail"))
@@ -127,6 +137,11 @@ class FixLoopIntegrationTest {
                 .andExpect(jsonPath("$.review.reviewedBy").value("Yokeshwaran"));
         mvc.perform(get("/api/reviews/queue")).andExpect(jsonPath("$.items", hasSize(2)))
                 .andExpect(jsonPath("$.items[*].verdict", everyItem(is("pass"))));
+        mvc.perform(get("/api/runs/" + runCode))
+                .andExpect(jsonPath("$.run.reviewed").value(1))
+                .andExpect(jsonPath("$.run.awaitingReview").value(2));
+        mvc.perform(get("/api/runs")).andExpect(jsonPath("$[0].reviewed").value(1))
+                .andExpect(jsonPath("$[0].awaitingReview").value(2));
         mvc.perform(get("/api/reviews/agreement"))
                 .andExpect(jsonPath("$.overall.reviewed").value(1))
                 .andExpect(jsonPath("$.overall.rate").value(100.0));

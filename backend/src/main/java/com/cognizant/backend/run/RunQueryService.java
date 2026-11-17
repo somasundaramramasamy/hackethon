@@ -2,10 +2,12 @@ package com.cognizant.backend.run;
 
 import java.util.ArrayList;
 import java.util.EnumMap;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.function.Function;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,6 +23,7 @@ import com.cognizant.backend.judge.CriterionResult;
 import com.cognizant.backend.repository.InvestigationRepository;
 import com.cognizant.backend.repository.TestResultRepository;
 import com.cognizant.backend.repository.TestRunRepository;
+import com.cognizant.backend.repository.VerdictTally;
 import com.cognizant.backend.run.RunViews.CellChange;
 import com.cognizant.backend.run.RunViews.ChangeCounts;
 import com.cognizant.backend.run.RunViews.Counts;
@@ -50,8 +53,18 @@ public class RunQueryService {
     }
 
     public List<RunSummary> list() {
-        return runs.findAllByOrderByStartedAtDesc().stream()
-                .map(r -> summary(r, results.findByTestRun_IdOrderByIdAsc(r.getId())))
+        List<TestRun> all = runs.findAllByOrderByStartedAtDesc();
+        if (all.isEmpty()) {
+            return List.of();
+        }
+        // One grouped count for every run, instead of loading every answer of every run.
+        Map<Long, List<VerdictTally>> tallies = new HashMap<>();
+        results.tallyByRun(all.stream().map(TestRun::getId).toList())
+                .forEach(t -> tallies.computeIfAbsent(t.runId(), k -> new ArrayList<>()).add(t));
+        Map<Long, String> codes = new HashMap<>();
+        all.forEach(r -> codes.put(r.getId(), r.getCode()));
+        return all.stream()
+                .map(r -> summarize(r, tallies.getOrDefault(r.getId(), List.of()), codes::get))
                 .toList();
     }
 
@@ -63,7 +76,7 @@ public class RunQueryService {
 
     public RunSummary summary(String code) {
         TestRun run = find(code);
-        return summary(run, results.findByTestRun_IdOrderByIdAsc(run.getId()));
+        return summarize(run, results.tallyByRun(List.of(run.getId())), this::codeOf);
     }
 
     public RunViews.ResultDetail result(Long id) {
@@ -149,36 +162,44 @@ public class RunQueryService {
     }
 
     RunSummary summary(TestRun run, List<TestResult> all) {
-        Map<Language, List<TestResult>> byLanguage = new EnumMap<>(Language.class);
-        all.forEach(r -> byLanguage.computeIfAbsent(r.getLanguage(), k -> new ArrayList<>()).add(r));
-        List<LanguageCounts> languages = byLanguage.entrySet().stream()
-                .map(e -> new LanguageCounts(e.getKey().name(), e.getKey().getDisplayName(), counts(e.getValue())))
-                .toList();
-        String baselineCode = run.getBaselineRunId() == null ? null
-                : runs.findById(run.getBaselineRunId()).map(TestRun::getCode).orElse(null);
-        int awaiting = (int) all.stream().filter(TestResult::needsHumanReview).count();
-        int reviewed = (int) all.stream().filter(r -> r.getHumanVerdict() != null).count();
-        return new RunSummary(run.getCode(), lower(run.getType()), lower(run.getStatus()), run.getSuite(),
-                run.getModel(), run.getJudgeModel(), run.getPromptVersion(), baselineCode, run.getRepeats(),
-                run.getPlannedTests(), all.size(), run.getStartedBy(), run.getStartedAt(), run.getFinishedAt(),
-                run.getRescoredAt(), run.getSafetyScore(), counts(all), languages, awaiting, reviewed);
+        return summarize(run, all.stream().map(VerdictTally::of).toList(), this::codeOf);
     }
 
-    /** Counts by the reported verdict: a person's decision overrides the automated one. */
-    static Counts counts(List<TestResult> list) {
+    private RunSummary summarize(TestRun run, List<VerdictTally> tallies, Function<Long, String> codeOf) {
+        Map<Language, List<VerdictTally>> byLanguage = new EnumMap<>(Language.class);
+        tallies.forEach(t -> byLanguage.computeIfAbsent(t.language(), k -> new ArrayList<>()).add(t));
+        List<LanguageCounts> languages = byLanguage.entrySet().stream()
+                .map(e -> new LanguageCounts(e.getKey().name(), e.getKey().getDisplayName(), tally(e.getValue())))
+                .toList();
+        String baselineCode = run.getBaselineRunId() == null ? null : codeOf.apply(run.getBaselineRunId());
+        int awaiting = (int) tallies.stream().filter(VerdictTally::needsHumanReview).mapToLong(VerdictTally::count).sum();
+        int reviewed = (int) tallies.stream().filter(t -> t.humanVerdict() != null).mapToLong(VerdictTally::count).sum();
+        Counts counts = tally(tallies);
+        return new RunSummary(run.getCode(), lower(run.getType()), lower(run.getStatus()), run.getSuite(),
+                run.getModel(), run.getJudgeModel(), run.getPromptVersion(), baselineCode, run.getRepeats(),
+                run.getPlannedTests(), counts.total(), run.getStartedBy(), run.getStartedAt(), run.getFinishedAt(),
+                run.getRescoredAt(), run.getSafetyScore(), counts, languages, awaiting, reviewed);
+    }
+
+    private String codeOf(Long runId) {
+        return runs.findById(runId).map(TestRun::getCode).orElse(null);
+    }
+
+    private static Counts tally(List<VerdictTally> tallies) {
         int pass = 0;
         int fail = 0;
         int review = 0;
         int error = 0;
-        for (TestResult r : list) {
-            switch (r.getEffectiveVerdict()) {
-                case PASS -> pass++;
-                case FAIL -> fail++;
-                case NEEDS_REVIEW -> review++;
-                case ERROR -> error++;
+        for (VerdictTally t : tallies) {
+            int n = (int) t.count();
+            switch (t.effectiveVerdict()) {
+                case PASS -> pass += n;
+                case FAIL -> fail += n;
+                case NEEDS_REVIEW -> review += n;
+                case ERROR -> error += n;
             }
         }
-        return new Counts(list.size(), pass, fail, review, error);
+        return new Counts(pass + fail + review + error, pass, fail, review, error);
     }
 
     private static List<RunViews.ScenarioRow> rows(List<TestResult> all) {

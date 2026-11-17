@@ -1,6 +1,7 @@
 package com.cognizant.backend.repository;
 
 import java.time.Instant;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -20,6 +21,14 @@ public interface TestResultRepository extends JpaRepository<TestResult, Long> {
     Optional<TestResult> findWithScenarioById(Long id);
 
     long countByTestRun_Id(Long testRunId);
+
+    /** Verdict counts per run and language, for run summaries; loads no answers. */
+    @Query("""
+            select new com.cognizant.backend.repository.VerdictTally(r.testRun.id, r.language, r.verdict,
+                r.humanVerdict, r.auditSample, count(r))
+            from TestResult r where r.testRun.id in :runIds
+            group by r.testRun.id, r.language, r.verdict, r.humanVerdict, r.auditSample""")
+    List<VerdictTally> tallyByRun(@Param("runIds") Collection<Long> runIds);
 
     long countByScenario_Id(Long scenarioId);
 
