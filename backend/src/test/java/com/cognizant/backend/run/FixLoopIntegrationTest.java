@@ -74,7 +74,7 @@ class FixLoopIntegrationTest {
                 .andExpect(status().isAccepted())
                 .andExpect(jsonPath("$.status").value("running"))
                 .andExpect(jsonPath("$.plannedTests").value(4))
-                .andExpect(jsonPath("$.model").value("meta-llama/llama-3.2-3b-instruct"))
+                .andExpect(jsonPath("$.model").value("google/gemma-4-31b-it"))
                 .andReturn().getResponse().getContentAsString();
         String runCode = JsonPath.read(started, "$.code");
         TestRun run = waitForFinish(runCode);

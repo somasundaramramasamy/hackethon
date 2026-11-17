@@ -42,7 +42,7 @@ export default function Fixes() {
                       </Link>
                     </td>
                     <td>
-                      <PromptStatus status={p.status} />
+                      <PromptStatus prompt={p} />
                     </td>
                     <td className="small">{p.summary}</td>
                     <td className="small">{p.sourceRun ? <Link to={`/runs/${p.sourceRun}`}>{p.sourceRun}</Link> : '—'}</td>

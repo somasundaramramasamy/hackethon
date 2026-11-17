@@ -37,6 +37,8 @@ import tools.jackson.databind.json.JsonMapper;
 public class RunRecorder {
 
     /** Share of passed answers, per language, picked at random for a human spot-check. */
+    private static final String RESCORED = "Re-scored. ";
+    private static final String RESCORED_GOOD_PRACTICE = "Re-scored: only good-practice criteria were missed. ";
     static final double PASS_SPOT_CHECK_SHARE = 0.10;
     /** Share of failed answers, per language, picked at random for a human spot-check. */
     static final double FAIL_SPOT_CHECK_SHARE = 0.20;
@@ -89,7 +91,7 @@ public class RunRecorder {
         if (judge != null) {
             r.recordJudgement(judge.verdict(), judge.confidence(), judge.reason(), json.writeValueAsString(judge.criteria()),
                     judge.translation());
-            combined = VerdictPolicy.combine(rule, judge.verdict(), judge.reason());
+            combined = VerdictPolicy.combine(rule, judge.verdict(), judge.reason(), judge.criteria(), judge.confidence());
         } else {
             r.recordJudgement(ResultVerdict.ERROR, null, judgeError, null, null);
             combined = VerdictPolicy.combine(rule, null, null);
@@ -147,15 +149,22 @@ public class RunRecorder {
                     r.getJudgeVerdict(), r.getJudgeConfidence() == null ? 0 : r.getJudgeConfidence());
             r.rescoreJudgement(again.verdict(), json.writeValueAsString(again.criteria()));
             RuleCheck.Outcome rule = new RuleCheck.Outcome(r.getRuleVerdict(), r.getRuleDetail());
-            VerdictPolicy.Combined combined = VerdictPolicy.combine(rule, again.verdict(), r.getJudgeReason());
+            VerdictPolicy.Combined combined = VerdictPolicy.combine(rule, again.verdict(), r.getJudgeReason(),
+                    again.criteria(), r.getJudgeConfidence());
+            String note;
             if (combined.verdict() != r.getVerdict()) {
                 changed++;
-                String note = again.criteria().stream()
+                note = again.criteria().stream()
                         .anyMatch(c -> !JudgeService.isCritical(c) && Boolean.FALSE.equals(c.satisfied()))
-                        ? "Re-scored: only good-practice criteria were missed. "
-                        : "Re-scored. ";
-                r.recordVerdict(combined.verdict(), note + combined.detail());
+                        ? RESCORED_GOOD_PRACTICE
+                        : RESCORED;
+            } else {
+                // Same verdict: refresh the explanation, keeping any earlier re-score note.
+                String old = r.getCheckDetail() == null ? "" : r.getCheckDetail();
+                note = old.startsWith(RESCORED_GOOD_PRACTICE) ? RESCORED_GOOD_PRACTICE
+                        : old.startsWith(RESCORED) ? RESCORED : "";
             }
+            r.recordVerdict(combined.verdict(), note + combined.detail());
         }
         sampleSpotChecks(all);
         run.rescore(score(all), LocalDateTime.now());

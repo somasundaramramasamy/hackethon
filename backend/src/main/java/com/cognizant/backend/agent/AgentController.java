@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.cognizant.backend.entity.AssistantPrompt;
+import com.cognizant.backend.entity.RunStatus;
 import com.cognizant.backend.entity.RunType;
 import com.cognizant.backend.entity.TestRun;
 import com.cognizant.backend.prompt.PromptService;
@@ -96,8 +97,8 @@ public class AgentController {
     private PromptView view(AssistantPrompt p) {
         String source = p.getSourceRunId() == null ? null
                 : runs.findById(p.getSourceRunId()).map(TestRun::getCode).orElse(null);
-        List<String> retests = runs.findByTypeAndPromptVersionOrderByStartedAtDesc(RunType.RETEST, p.getVersion())
-                .stream().map(TestRun::getCode).toList();
-        return PromptView.of(p, source, retests);
+        List<TestRun> retests = runs.findByTypeAndPromptVersionOrderByStartedAtDesc(RunType.RETEST, p.getVersion());
+        boolean retesting = retests.stream().anyMatch(r -> r.getStatus() == RunStatus.RUNNING);
+        return PromptView.of(p, source, retests.stream().map(TestRun::getCode).toList(), retesting);
     }
 }

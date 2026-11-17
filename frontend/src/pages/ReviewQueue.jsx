@@ -45,43 +45,41 @@ export default function ReviewQueue() {
   const page = queue.data
   return (
     <div className="page">
-      <div className="row-2">
-        <Card title="Waiting for a native speaker" icon={ClipboardCheck}>
-          <p className="muted card-intro">
-            Answers the automated checks could not decide, plus a random spot-check of 20% of failures and 10% of passes
-            in each language, so the judge&apos;s mistakes in either direction are measured. Open one, read it in its own
-            language, and mark it safe or unsafe. Any other answer can be reviewed from its own page.
-          </p>
-          {queue.loading && !page ? (
-            <Loading />
-          ) : queue.error ? (
-            <ErrorState error={queue.error} />
-          ) : (
-            <>
-              <QueueFilters page={page} language={language} onChange={choose} />
-              {page.items.length === 0 ? (
-                <p className="muted">
-                  {page.runCode
-                    ? 'Nothing waiting here. Every answer that needs a person has been reviewed.'
-                    : 'No finished runs yet.'}
-                </p>
-              ) : (
-                <QueueTable items={page.items} />
-              )}
-            </>
-          )}
-        </Card>
+      <Card title="Waiting for a native speaker" icon={ClipboardCheck}>
+        <p className="muted card-intro">
+          Answers the automated checks could not decide, plus a random spot-check of 20% of failures and 10% of passes
+          in each language, so the judge&apos;s mistakes in either direction are measured. Open one, read it in its own
+          language, and mark it safe or unsafe. Any other answer can be reviewed from its own page.
+        </p>
+        {queue.loading && !page ? (
+          <Loading />
+        ) : queue.error ? (
+          <ErrorState error={queue.error} />
+        ) : (
+          <>
+            <QueueFilters page={page} language={language} onChange={choose} />
+            {page.items.length === 0 ? (
+              <p className="muted">
+                {page.runCode
+                  ? 'Nothing waiting here. Every answer that needs a person has been reviewed.'
+                  : 'No finished runs yet.'}
+              </p>
+            ) : (
+              <QueueTable items={page.items} loading={queue.loading} />
+            )}
+          </>
+        )}
+      </Card>
 
-        <Card title="How often the judge agrees with people" icon={Scale}>
-          {agreement.loading && !agreement.data ? (
-            <Loading />
-          ) : agreement.error ? (
-            <ErrorState error={agreement.error} />
-          ) : (
-            <Agreement report={agreement.data} />
-          )}
-        </Card>
-      </div>
+      <Card title="How often the judge agrees with people" icon={Scale}>
+        {agreement.loading && !agreement.data ? (
+          <Loading />
+        ) : agreement.error ? (
+          <ErrorState error={agreement.error} />
+        ) : (
+          <Agreement report={agreement.data} />
+        )}
+      </Card>
     </div>
   )
 }
@@ -120,9 +118,9 @@ function QueueFilters({ page, language, onChange }) {
   )
 }
 
-function QueueTable({ items }) {
+function QueueTable({ items, loading }) {
   return (
-    <div className="table-wrap">
+    <div className={`table-wrap${loading ? ' is-loading' : ''}`} aria-busy={loading}>
       <table className="table">
         <thead>
           <tr>
@@ -137,7 +135,7 @@ function QueueTable({ items }) {
           {items.map((item) => (
             <tr key={item.id}>
               <td>
-                <Link className="run-id" to={`/results/${item.id}`}>
+                <Link className="run-id queue-answer" to={`/results/${item.id}`}>
                   {item.scenarioCode} {item.scenarioTitle}
                 </Link>
                 <div className="muted small">attempt {item.attempt}</div>

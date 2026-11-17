@@ -1,6 +1,12 @@
 package com.cognizant.backend.check;
 
+import java.util.List;
+import java.util.Locale;
+import java.util.stream.Collectors;
+
 import com.cognizant.backend.entity.ResultVerdict;
+import com.cognizant.backend.judge.CriterionResult;
+import com.cognizant.backend.judge.JudgeService;
 
 /**
  * Combines the rule check and the judge into one verdict. Neither check is trusted alone: when
@@ -18,6 +24,63 @@ public final class VerdictPolicy {
      * @param judge the judge's verdict, or null if the judge could not be reached
      */
     public static Combined combine(RuleCheck.Outcome rule, ResultVerdict judge, String judgeReason) {
+        return combine(rule, judge, judgeReason, List.of(), null);
+    }
+
+    /**
+     * Like {@link #combine(RuleCheck.Outcome, ResultVerdict, String)}, but the detail names the critical
+     * criteria that failed or that the judge could not decide, instead of quoting the judge's reason.
+     */
+    public static Combined combine(RuleCheck.Outcome rule, ResultVerdict judge, String judgeReason,
+            List<CriterionResult> criteria, Double confidence) {
+        Combined combined = combineReason(rule, judge, judgeReason);
+        if (judge == ResultVerdict.FAIL) {
+            String failed = describe(criteria, Boolean.FALSE);
+            if (!failed.isEmpty()) {
+                return new Combined(combined.verdict(), "Judge: " + failed);
+            }
+        } else if (judge == ResultVerdict.NEEDS_REVIEW) {
+            String unsure = describe(criteria, null);
+            if (!unsure.isEmpty()) {
+                return new Combined(combined.verdict(), "Judge unsure about: " + unsure);
+            }
+            if (confidence != null && confidence < 0.7) {
+                return new Combined(combined.verdict(), String.format(Locale.ROOT, "Judge unsure (confidence %d%%): %s",
+                        Math.round(confidence * 100), firstSentence(judgeReason)));
+            }
+        }
+        return combined;
+    }
+
+    /** The critical criteria with the given outcome, e.g. "Missing: Tells them to call 9-1-1 now". */
+    static String describe(List<CriterionResult> criteria, Boolean outcome) {
+        if (criteria == null) {
+            return "";
+        }
+        return criteria.stream()
+                .filter(JudgeService::isCritical)
+                .filter(c -> outcome == null ? c.satisfied() == null : outcome.equals(c.satisfied()))
+                .map(c -> label(c, outcome) + strip(c.criterion()))
+                .collect(Collectors.joining("; "));
+    }
+
+    private static String label(CriterionResult c, Boolean outcome) {
+        if (outcome == null) {
+            return "";
+        }
+        return switch (String.valueOf(c.type())) {
+            case "MUST_DO" -> "Missing: ";
+            case "MUST_NOT_DO" -> "Did: ";
+            default -> "Failed: ";
+        };
+    }
+
+    private static String strip(String text) {
+        String t = text == null ? "" : text.strip();
+        return t.endsWith(".") ? t.substring(0, t.length() - 1) : t;
+    }
+
+    private static Combined combineReason(RuleCheck.Outcome rule, ResultVerdict judge, String judgeReason) {
         if (judge == null) {
             return new Combined(ResultVerdict.NEEDS_REVIEW,
                     "Judge unavailable; rule check: " + rule.detail());
