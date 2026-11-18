@@ -51,7 +51,7 @@ const router = createBrowserRouter([
       {
         path: 'reviews',
         element: <ReviewQueue />,
-        handle: page('Review Queue', 'Native speakers confirm or reject what the checks flagged'),
+        handle: page('Review Queue', 'Native speakers and clinicians confirm or reject what the checks flagged'),
       },
       {
         path: 'investigations/:id',

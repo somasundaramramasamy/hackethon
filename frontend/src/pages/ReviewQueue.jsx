@@ -2,6 +2,7 @@ import { Link, useSearchParams } from 'react-router-dom'
 import { ClipboardCheck, Scale } from 'lucide-react'
 import { getAgreement, getReviewQueue } from '../api/client'
 import { useLoad } from '../hooks/useLoad'
+import { useIdentity } from '../state/identity'
 import { AuditTag, Card, ErrorState, LangChip, Loading, Verdict } from '../components/ui'
 import { formatDate, percent, shortModel } from '../utils/format'
 
@@ -24,11 +25,19 @@ function saveLanguage(language) {
   }
 }
 
+function roleLanguage(identity) {
+  if (identity?.role === 'reviewer') return identity.language ?? ''
+  if (identity?.role === 'clinician') return 'EN'
+  return ''
+}
+
 export default function ReviewQueue() {
   const [params, setParams] = useSearchParams()
   const run = params.get('run') || ''
-  // A shared link (?language=HI) wins; otherwise the reviewer's last choice.
-  const language = params.has('language') ? params.get('language') : savedLanguage()
+  const { identity } = useIdentity()
+  // A shared link (?language=HI) wins, then the last choice in this browser, then the person's role:
+  // a reviewer's own language, or English for a clinician.
+  const language = params.has('language') ? params.get('language') : savedLanguage() || roleLanguage(identity)
   const queue = useLoad(() => getReviewQueue({ run, language }), [run, language])
   const agreement = useLoad(getAgreement, [])
 

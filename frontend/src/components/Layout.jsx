@@ -4,7 +4,8 @@ import { House, CirclePlay, Layers, ClipboardCheck, Wrench, HeartPulse, Menu, X,
 import Logo from './Logo'
 import { getReviewQueueCount, getSettings } from '../api/client'
 import { SettingsContext } from '../state/settings'
-import { setReviewerName, useReviewerName } from '../state/reviewer'
+import IdentityDialog from './IdentityDialog'
+import { askForIdentity, roleLabel, useIdentity } from '../state/identity'
 
 const nav = [
   { to: '/', label: 'Dashboard', icon: House, end: true },
@@ -108,67 +109,34 @@ export default function Layout() {
                 </div>
               )}
             </div>
-            <div className="topbar-right">
-              <ReviewerName />
-            </div>
+            <div className="topbar-right">{!settings?.readOnly && <CurrentUser />}</div>
           </header>
           <main className="content">
             <Outlet />
           </main>
+          <IdentityDialog disabled={!settings || settings.readOnly} />
         </div>
       </div>
     </SettingsContext.Provider>
   )
 }
 
-/** Every review and approval is signed with this name; there is no login in the MVP. */
-function ReviewerName() {
-  const name = useReviewerName()
-  const [editing, setEditing] = useState(false)
-  const [draft, setDraft] = useState('')
-
-  if (editing || !name) {
+/** Who is signing decisions in this browser; click to change. */
+function CurrentUser() {
+  const { identity, confirmed } = useIdentity()
+  if (!confirmed) {
     return (
-      <form
-        className="reviewer-form"
-        onSubmit={(e) => {
-          e.preventDefault()
-          if (draft.trim()) {
-            setReviewerName(draft)
-            setEditing(false)
-          }
-        }}
-      >
-        <label htmlFor="reviewer-name" className="muted small">
-          Your name
-        </label>
-        <input
-          id="reviewer-name"
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          placeholder="Signs your reviews"
-          maxLength={100}
-          autoFocus={editing}
-        />
-        <button className="btn-secondary" type="submit" disabled={!draft.trim()}>
-          Save
-        </button>
-      </form>
+      <button className="btn-secondary" onClick={() => askForIdentity()}>
+        <UserPen size={16} /> Say who you are
+      </button>
     )
   }
   return (
-    <button
-      className="user"
-      onClick={() => {
-        setDraft(name)
-        setEditing(true)
-      }}
-      title="Change the name that signs your reviews and approvals"
-    >
-      <span className="avatar">{initials(name)}</span>
+    <button className="user" onClick={() => askForIdentity()} title="Change who signs reviews, approvals and tests">
+      <span className="avatar">{initials(identity.name)}</span>
       <span className="user-text">
-        <span className="user-name">{name}</span>
-        <span className="user-role">Reviewer</span>
+        <span className="user-name">{identity.name}</span>
+        <span className="user-role">{roleLabel(identity)}</span>
       </span>
       <UserPen size={16} />
     </button>
