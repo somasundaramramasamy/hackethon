@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, NavLink, Outlet, useLocation, useMatches, useNavigate } from 'react-router-dom'
-import { History, CirclePlay, Layers, ClipboardCheck, Wrench, HeartPulse, Menu, X, ChevronRight, ChevronDown, LogOut, UserPen } from 'lucide-react'
+import { History, CirclePlay, Layers, ClipboardCheck, Wrench, Menu, X, ChevronRight, ChevronDown, LogOut, UserPen } from 'lucide-react'
 import Logo from './Logo'
 import { getPrompts, getReviewQueueCount, getSettings } from '../api/client'
 import { waitingFixes } from '../utils/fixes'
@@ -86,15 +86,11 @@ export default function Layout() {
             ))}
           </nav>
 
-          <div className="assistant-card">
-            <div className="assistant-icon">
-              <HeartPulse size={22} />
+          {!settings?.readOnly && (
+            <div className="sidebar-profile">
+              <CurrentUser />
             </div>
-            <div>
-              <div className="assistant-title">Health assistant under test</div>
-              <div className="assistant-langs">English • Tamil • Hindi • Malayalam</div>
-            </div>
-          </div>
+          )}
         </aside>
         {open && <div className="scrim" onClick={() => setOpen(false)} />}
 
@@ -126,7 +122,7 @@ export default function Layout() {
                 </div>
               )}
             </div>
-            <div className="topbar-right">{!settings?.readOnly && <CurrentUser />}</div>
+
           </header>
           <main className="content">
             <Outlet />
@@ -159,8 +155,8 @@ function CurrentUser() {
 
   if (!confirmed) {
     return (
-      <button className="btn-secondary" onClick={() => askForIdentity()}>
-        <UserPen size={16} /> Say who you are
+      <button className="profile-signin" onClick={() => askForIdentity()}>
+        <UserPen size={18} /> Say who you are
       </button>
     )
   }
