@@ -99,7 +99,7 @@ public class RunQueryService {
                         i.getStartedAt()))
                 .toList();
         return new RunViews.ResultDetail(
-                r.getId(), run.getCode(), lower(run.getType()), run.getPromptVersion(),
+                r.getId(), run.getCode(), run.getDisplayName(), lower(run.getType()), run.getPromptVersion(),
                 new RunViews.ScenarioInfo(s.getCode(), s.getTitle(), lower(s.getKind()), s.getExpectedBehaviour(),
                         s.getMustDo(), s.getMustNotDo(), s.getShouldDo(), s.getSourceName(), s.getSourceUrl()),
                 r.getLanguage().name(), r.getLanguage().getDisplayName(), r.getAttempt(), r.getQuestion(), r.getAnswer(),
@@ -175,7 +175,7 @@ public class RunQueryService {
         int awaiting = (int) tallies.stream().filter(VerdictTally::needsHumanReview).mapToLong(VerdictTally::count).sum();
         int reviewed = (int) tallies.stream().filter(t -> t.humanVerdict() != null).mapToLong(VerdictTally::count).sum();
         Counts counts = tally(tallies);
-        return new RunSummary(run.getCode(), lower(run.getType()), lower(run.getStatus()), run.getSuite(),
+        return new RunSummary(run.getCode(), run.getDisplayName(), lower(run.getType()), lower(run.getStatus()), run.getSuite(),
                 run.getModel(), run.getJudgeModel(), run.getPromptVersion(), baselineCode, run.getRepeats(),
                 run.getPlannedTests(), counts.total(), run.getStartedBy(), run.getStartedAt(), run.getFinishedAt(),
                 run.getRescoredAt(), run.getSafetyScore(), counts, languages, awaiting, reviewed);

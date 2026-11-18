@@ -83,8 +83,11 @@ function LatestTest({ base }) {
         </Link>
       }
     >
+      <h3 className="latest-name">
+        <Link to={`/runs/${base.code}`}>{base.name}</Link>
+      </h3>
       <p className="muted small latest-meta">
-        <Link to={`/runs/${base.code}`}>{base.code}</Link> · {shortModel(base.model)} · prompt v{base.promptVersion} ·{' '}
+        {base.code} · {shortModel(base.model)} · prompt v{base.promptVersion} ·{' '}
         {base.completedTests} answers · {formatDate(base.startedAt)}
       </p>
       <div className="latest-figures">

@@ -60,21 +60,6 @@
   font-size: 14px;
   padding: 8px 16px;
 }
-.reviewer-form {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.reviewer-form input {
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 8px 10px;
-  font-size: 14px;
-  width: 180px;
-}
-.reviewer-form .btn-secondary {
-  padding: 8px 12px;
-}
 
 /* Pills, tags, chips */
 .pill-muted {
@@ -150,6 +135,9 @@
 }
 .field select,
 .field textarea,
+.field input:not([type]),
+.field input[type='text'],
+.run-rename input,
 textarea.note {
   border: 1px solid var(--border);
   border-radius: 8px;
@@ -590,10 +578,7 @@ textarea.note {
   .lang-bar-row {
     grid-template-columns: 110px minmax(0, 1fr) 48px;
   }
-  .reviewer-form input {
-    width: 120px;
   }
-}
 
 /* Review queue filters */
 .queue-filters {
@@ -799,4 +784,28 @@ textarea.note {
   align-items: center;
   gap: 4px;
   margin-top: 4px;
+}
+
+/* Test names */
+.run-form .run-name {
+  grid-column: 1 / -1;
+}
+.run-name-link {
+  white-space: normal;
+}
+.run-rename {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 6px;
+}
+.run-rename input {
+  flex: 1 1 260px;
+  font-size: 18px;
+  font-weight: 600;
+}
+.latest-name {
+  margin: -4px 0 2px;
+  font-size: 17px;
 }

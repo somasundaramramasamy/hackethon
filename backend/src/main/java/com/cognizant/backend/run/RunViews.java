@@ -20,6 +20,7 @@ public final class RunViews {
 
     public record RunSummary(
             String code,
+            String name,
             String type,
             String status,
             String suite,
@@ -77,6 +78,7 @@ public final class RunViews {
     public record ResultDetail(
             Long id,
             String runCode,
+            String runName,
             String runType,
             Integer promptVersion,
             ScenarioInfo scenario,

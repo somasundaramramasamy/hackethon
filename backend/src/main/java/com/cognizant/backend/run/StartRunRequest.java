@@ -18,6 +18,7 @@ import com.cognizant.backend.entity.Language;
  * @param scenarios  scenario codes to include; empty = every active scenario
  * @param languages  languages to include; empty = every language the scenarios have
  * @param startedBy  the person starting the run
+ * @param name       what people will call this run; empty = a name built from the model and settings
  */
 public record StartRunRequest(
         @Size(max = 120) String model,
@@ -25,5 +26,6 @@ public record StartRunRequest(
         @Min(1) @Max(3) Integer repeats,
         @Size(max = 50) List<@NotBlank String> scenarios,
         @Size(max = 4) List<Language> languages,
-        @Size(max = 100) String startedBy) {
+        @Size(max = 100) String startedBy,
+        @Size(max = 120) String name) {
 }

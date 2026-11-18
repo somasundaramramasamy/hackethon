@@ -29,6 +29,7 @@ function NewRun({ running }) {
   const [model, setModel] = useState('')
   const [judge, setJudge] = useState('')
   const [repeats, setRepeats] = useState(1)
+  const [name, setName] = useState('')
   const [languages, setLanguages] = useState(['EN', 'TA', 'HI', 'ML'])
   const [busy, setBusy] = useState(false)
   const [failure, setFailure] = useState(null)
@@ -52,6 +53,7 @@ function NewRun({ running }) {
         repeats,
         languages,
         startedBy: by,
+        name: name.trim() || undefined,
       })
       navigate(`/runs/${run.code}`)
     } catch (err) {
@@ -76,6 +78,19 @@ function NewRun({ running }) {
         </Notice>
       )}
       <form className="run-form" onSubmit={submit}>
+        <label className="field run-name">
+          <span className="field-label">Name this test (optional)</span>
+          <input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder={defaultName(settings, model, languages.length, repeats)}
+            maxLength={120}
+          />
+          <span className="field-hint">
+            Say why you are running it, e.g. &quot;Before launch&quot; or &quot;After the nurse&apos;s feedback&quot;. Left
+            empty, it is named after the model and settings.
+          </span>
+        </label>
         <label className="field">
           <span className="field-label">Assistant under test</span>
           <select value={model} onChange={(e) => setModel(e.target.value)}>
@@ -130,4 +145,11 @@ function NewRun({ running }) {
       {failure && <Notice kind="error">{failure}</Notice>}
     </Card>
   )
+}
+
+/** Mirrors the backend's name for a run started without one. */
+function defaultName(settings, model, languages, repeats) {
+  const option = settings.assistantModels.find((m) => m.id === model) ?? settings.assistantModels[0]
+  const label = (option?.label ?? 'Model').replace(/\s*\(.*\)$/, '')
+  return `${label} · ${languages} ${languages === 1 ? 'language' : 'languages'}${repeats > 1 ? ` · ×${repeats}` : ''}`
 }

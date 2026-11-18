@@ -19,7 +19,7 @@ public final class ReviewViews {
     }
 
     /** A run a reviewer can pick, with how many of its answers are waiting. */
-    public record RunOption(String code, String type, String model, Integer promptVersion, Instant startedAt,
+    public record RunOption(String code, String name, String type, String model, Integer promptVersion, Instant startedAt,
             long waiting) {
     }
 
