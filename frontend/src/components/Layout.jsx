@@ -8,7 +8,7 @@ import IdentityDialog from './IdentityDialog'
 import { askForIdentity, roleLabel, useIdentity } from '../state/identity'
 
 const nav = [
-  { to: '/', label: 'Dashboard', icon: House, end: true },
+  { to: '/', label: 'Overview', icon: House, end: true },
   { to: '/runs', label: 'Test Runs', icon: CirclePlay },
   { to: '/reviews', label: 'Review Queue', icon: ClipboardCheck, badge: true },
   { to: '/fixes', label: 'Fixes', icon: Wrench },

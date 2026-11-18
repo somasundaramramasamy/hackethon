@@ -752,3 +752,51 @@ textarea.note {
   color: var(--text);
   text-decoration: underline;
 }
+
+/* Overview */
+.latest-meta {
+  margin: -4px 0 14px;
+}
+.latest-figures {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 28px;
+  margin-bottom: 16px;
+}
+.latest-value {
+  font-size: 32px;
+  font-weight: 700;
+  line-height: 1.1;
+}
+.latest-value.bad {
+  color: var(--red);
+}
+.latest-new {
+  margin-top: 16px;
+}
+.needs-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.needs-list li {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  line-height: 1.45;
+}
+.needs-list li > svg {
+  flex: none;
+  margin-top: 2px;
+  color: var(--blue-600);
+}
+.link.block {
+  display: flex;
+  width: fit-content;
+  align-items: center;
+  gap: 4px;
+  margin-top: 4px;
+}
