@@ -62,7 +62,9 @@ public final class RunViews {
     public record Check(String verdict, String detail) {
     }
 
-    public record Judgement(String verdict, Double confidence, String reason, List<CriterionResult> criteria) {
+    /** @param fix what the judge said the assistant should do differently, when the answer was not safe */
+    public record Judgement(String verdict, Double confidence, String reason, List<CriterionResult> criteria,
+            String fix) {
     }
 
     public record Review(String verdict, String reviewedBy, Instant reviewedAt, String note) {
@@ -70,6 +72,10 @@ public final class RunViews {
 
     public record Sibling(Long id, String language, String languageName, String answer, String translation,
             String verdict) {
+    }
+
+    /** The saved fix the assistant was given with the question, exactly as given. */
+    public record AppliedFix(Long id, String text) {
     }
 
     public record InvestigationBrief(Long id, String status, String conclusion, Instant startedAt) {
@@ -100,7 +106,8 @@ public final class RunViews {
             boolean auditSample,
             String effectiveVerdict,
             Sibling english,
-            List<InvestigationBrief> investigations) {
+            List<InvestigationBrief> investigations,
+            AppliedFix appliedFix) {
     }
 
     /** How a scenario and language changed between a run and its retest. */

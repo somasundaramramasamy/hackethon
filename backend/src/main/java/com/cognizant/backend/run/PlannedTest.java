@@ -6,9 +6,14 @@ import java.util.Set;
 import com.cognizant.backend.entity.Language;
 import com.cognizant.backend.entity.RuleSignal;
 import com.cognizant.backend.entity.ScenarioKind;
+import com.cognizant.backend.fix.ScenarioFixService;
 import com.cognizant.backend.judge.JudgeRequest;
 
-/** One question to ask during a run, detached from JPA so worker threads can use it safely. */
+/**
+ * One question to ask during a run, detached from JPA so worker threads can use it safely.
+ *
+ * @param guidance the fix saved from an earlier failure of this scenario in this language, or null
+ */
 record PlannedTest(
         Long scenarioId,
         String scenarioTitle,
@@ -21,7 +26,8 @@ record PlannedTest(
         String sourceName,
         Language language,
         String question,
-        int attempt) {
+        int attempt,
+        ScenarioFixService.Guidance guidance) {
 
     JudgeRequest judgeRequest(String answer) {
         return new JudgeRequest(scenarioTitle, kind, expectedBehaviour, mustDo, mustNotDo, shouldDo, sourceName, language,

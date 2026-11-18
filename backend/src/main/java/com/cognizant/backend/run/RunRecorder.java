@@ -25,6 +25,7 @@ import com.cognizant.backend.entity.TestRun;
 import com.cognizant.backend.judge.CriterionResult;
 import com.cognizant.backend.judge.JudgeService;
 import com.cognizant.backend.judge.JudgeVerdict;
+import com.cognizant.backend.repository.ScenarioFixRepository;
 import com.cognizant.backend.repository.TestResultRepository;
 import com.cognizant.backend.repository.TestRunRepository;
 import com.cognizant.backend.repository.TestScenarioRepository;
@@ -56,16 +57,18 @@ public class RunRecorder {
     private final TestResultRepository results;
     private final JsonMapper json;
     private final Random random;
+    private final ScenarioFixRepository fixes;
 
     @Autowired
     public RunRecorder(TestRunRepository runs, TestScenarioRepository scenarios, TestResultRepository results,
-            JsonMapper json) {
-        this(runs, scenarios, results, json, new Random());
+            JsonMapper json, ScenarioFixRepository fixes) {
+        this(runs, scenarios, results, json, fixes, new Random());
     }
 
     RunRecorder(TestRunRepository runs, TestScenarioRepository scenarios, TestResultRepository results,
-            JsonMapper json, Random random) {
+            JsonMapper json, ScenarioFixRepository fixes, Random random) {
         this.runs = runs;
+        this.fixes = fixes;
         this.scenarios = scenarios;
         this.results = results;
         this.json = json;
@@ -83,9 +86,14 @@ public class RunRecorder {
         return runs.save(run);
     }
 
-    /** Saves an answer that was checked by the rules and (if reachable) the judge. */
+    /**
+     * Saves an answer that was checked by the rules and (if reachable) the judge, and counts how the
+     * saved fix it was given (if any) did.
+     *
+     * @return the saved result's id
+     */
     @Transactional
-    public void saveChecked(Long runId, PlannedTest test, String model, String answer, long durationMs,
+    public Long saveChecked(Long runId, PlannedTest test, String model, String answer, long durationMs,
             Instant askedAt, RuleCheck.Outcome rule, JudgeVerdict judge, String judgeError) {
         TestResult r = newResult(runId, test, model, answer, durationMs, askedAt);
         r.recordRuleCheck(rule.verdict(), rule.detail());
@@ -93,6 +101,7 @@ public class RunRecorder {
         if (judge != null) {
             r.recordJudgement(judge.verdict(), judge.confidence(), judge.reason(), json.writeValueAsString(judge.criteria()),
                     judge.translation());
+            r.recordJudgeFix(judge.fix());
             combined = VerdictPolicy.combine(rule, judge.verdict(), judge.reason(), judge.criteria(), judge.confidence());
         } else {
             r.recordJudgement(ResultVerdict.ERROR, null, judgeError, null, null);
@@ -102,7 +111,12 @@ public class RunRecorder {
             combined = new VerdictPolicy.Combined(ResultVerdict.FAIL, "The assistant returned an empty answer.");
         }
         r.recordVerdict(combined.verdict(), combined.detail());
-        results.save(r);
+        if (test.guidance() != null) {
+            r.recordAppliedFix(test.guidance().fixId(), test.guidance().text());
+            fixes.recordUse(test.guidance().fixId(), test.guidance().revision(),
+                    combined.verdict() == ResultVerdict.PASS ? 1 : 0, combined.verdict(), askedAt);
+        }
+        return results.save(r).getId();
     }
 
     /** Saves a question whose model call failed, so the run shows exactly what could not be checked. */
@@ -110,6 +124,9 @@ public class RunRecorder {
     public void saveError(Long runId, PlannedTest test, String model, long durationMs, Instant askedAt, String error) {
         TestResult r = newResult(runId, test, model, null, durationMs, askedAt);
         r.recordVerdict(ResultVerdict.ERROR, "Model call failed: " + error);
+        if (test.guidance() != null) {
+            r.recordAppliedFix(test.guidance().fixId(), test.guidance().text());
+        }
         results.save(r);
     }
 

@@ -1,14 +1,12 @@
-import { useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { Wrench, GitCompare, ArrowRight, Check, X, RotateCcw, FlaskConical } from 'lucide-react'
-import { decidePrompt, getPrompt, getRuns } from '../api/client'
+import { Wrench, GitCompare, ArrowRight, FlaskConical } from 'lucide-react'
+import { getComparison, getPrompt, getRuns } from '../api/client'
 import { useLoad } from '../hooks/useLoad'
-import { Card, ErrorState, Loading, Notice, StatusPill } from '../components/ui'
+import { Card, ErrorState, Loading, StatusPill } from '../components/ui'
 import PromptStatus from '../components/PromptStatus'
+import FixDecisions from '../components/FixDecisions'
 import { diffLines } from '../utils/diff'
 import { formatDate } from '../utils/format'
-import { useSettings } from '../state/settings'
-import { useSigner } from '../state/identity'
 
 export default function FixDetail() {
   const { version } = useParams()
@@ -18,12 +16,18 @@ export default function FixDetail() {
     [prompt.data?.basedOnVersion],
   )
   const runs = useLoad(getRuns, [version], { shouldPoll: (d) => d?.some((r) => r.status === 'running') })
+  const latestRetest = (runs.data ?? []).find((r) => prompt.data?.retestRuns.includes(r.code))
+  const comparison = useLoad(
+    () => (latestRetest?.status === 'completed' ? getComparison(latestRetest.code) : Promise.resolve(null)),
+    [latestRetest?.code, latestRetest?.status],
+  )
 
   if (prompt.loading && !prompt.data) return <Loading />
   if (prompt.error) return <ErrorState error={prompt.error} />
 
   const p = prompt.data
   const retests = (runs.data ?? []).filter((r) => p.retestRuns.includes(r.code))
+  const newFailures = comparison.data?.counts.newFailures ?? 0
   return (
     <div className="page">
       <Card>
@@ -46,7 +50,12 @@ export default function FixDetail() {
         {p.summary && <p className="fix-summary">{p.summary}</p>}
         {p.rationale && <p className="muted fix-rationale">{p.rationale}</p>}
         {p.decisionNote && <p className="small">Note: “{p.decisionNote}”</p>}
-        <Decisions prompt={p} retests={retests} onDone={() => Promise.all([prompt.reload(), runs.reload()])} />
+        <FixDecisions
+          prompt={p}
+          retests={retests}
+          newFailures={newFailures}
+          onDone={() => Promise.all([prompt.reload(), runs.reload()])}
+        />
       </Card>
 
       {retests.length > 0 && (
@@ -84,80 +93,6 @@ export default function FixDetail() {
           <pre className="prompt-text">{p.text}</pre>
         )}
       </Card>
-    </div>
-  )
-}
-
-function Decisions({ prompt, retests, onDone }) {
-  const settings = useSettings()
-  const { signed } = useSigner()
-  const [note, setNote] = useState('')
-  const [busy, setBusy] = useState(false)
-  const [failure, setFailure] = useState(null)
-  if (settings?.readOnly) return null
-
-  const decide = (decision) => signed((by) => record(decision, by))
-  const record = async (decision, by) => {
-    setBusy(true)
-    setFailure(null)
-    try {
-      await decidePrompt(prompt.version, decision, by, note || undefined)
-      setNote('')
-      await onDone()
-    } catch (err) {
-      setFailure(err.message)
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  const finishedRetest = retests.some((r) => r.status === 'completed')
-  const retestRunning = retests.some((r) => r.status === 'running')
-  return (
-    <div className="decisions">
-      {prompt.status === 'proposed' && (
-        <>
-          <p className="small">
-            Approving starts a retest at once: the failures, every English question and every control question, with
-            this prompt. Nothing changes for real users until the version is adopted.
-          </p>
-          <textarea
-            className="note"
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-            placeholder="Optional note for the record"
-            rows={2}
-            maxLength={1000}
-          />
-          <div className="review-buttons">
-            <button className="btn-success" disabled={busy} onClick={() => decide('approve')}>
-              <Check size={18} /> Approve and retest
-            </button>
-            <button className="btn-danger" disabled={busy} onClick={() => decide('reject')}>
-              <X size={18} /> Reject
-            </button>
-          </div>
-        </>
-      )}
-      {prompt.status === 'approved' && retests.length === 0 && (
-        <button className="btn-primary" disabled={busy} onClick={() => decide('retest')}>
-          <FlaskConical size={18} /> Start the retest
-        </button>
-      )}
-      {prompt.status === 'approved' && (
-        <button className="btn-success" disabled={busy || !finishedRetest} onClick={() => decide('adopt')}>
-          <Check size={18} /> Adopt v{prompt.version}
-        </button>
-      )}
-      {prompt.status === 'approved' && !finishedRetest && (
-        <span className="muted small">{retestRunning ? 'Adopt once the retest finishes.' : 'Adopt after a retest.'}</span>
-      )}
-      {prompt.status === 'retired' && (
-        <button className="btn-secondary" disabled={busy} onClick={() => decide('adopt')}>
-          <RotateCcw size={18} /> Roll back to v{prompt.version}
-        </button>
-      )}
-      {failure && <Notice kind="error">{failure}</Notice>}
     </div>
   )
 }

@@ -62,6 +62,11 @@ export const submitReview = (resultId, body) => post(`/api/results/${id(resultId
 export const startInvestigation = (resultId, person) =>
   post(`/api/results/${id(resultId)}/investigations`, { person })
 export const getInvestigation = (investigationId) => request(`/api/investigations/${id(investigationId)}`)
+// Fixes saved from failed answers, given to the model the next time the same question is asked
+export const getScenarioFixes = () => request('/api/scenario-fixes')
+export const switchScenarioFix = (fixId, on, person, note) =>
+  post(`/api/scenario-fixes/${id(fixId)}/${on ? 'on' : 'off'}`, { person, note })
+export const learnFixesFromRun = (runCode) => post(`/api/runs/${id(runCode)}/scenario-fixes`)
 export const proposeFix = (runCode, person) => post(`/api/runs/${id(runCode)}/fix-proposals`, { person })
 export const getPrompts = () => request('/api/prompts')
 export const getPrompt = (version) => request(`/api/prompts/${id(version)}`)

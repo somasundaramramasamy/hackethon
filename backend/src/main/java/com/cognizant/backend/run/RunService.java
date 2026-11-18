@@ -25,6 +25,7 @@ import com.cognizant.backend.entity.TestRun;
 import com.cognizant.backend.entity.TestScenario;
 import com.cognizant.backend.exception.NotAllowedException;
 import com.cognizant.backend.exception.ResourceNotFoundException;
+import com.cognizant.backend.fix.ScenarioFixService;
 import com.cognizant.backend.llm.LlmClient;
 import com.cognizant.backend.llm.LlmNotConfiguredException;
 import com.cognizant.backend.llm.LlmProperties;
@@ -49,10 +50,11 @@ public class RunService {
     private final LlmProperties props;
     private final LlmClient llm;
     private final TransactionTemplate tx;
+    private final ScenarioFixService fixes;
 
     public RunService(TestScenarioRepository scenarios, TestRunRepository runs, TestResultRepository results,
             PromptService prompts, RunRecorder recorder, RunExecutor executor, LlmProperties props, LlmClient llm,
-            TransactionTemplate tx) {
+            TransactionTemplate tx, ScenarioFixService fixes) {
         this.scenarios = scenarios;
         this.runs = runs;
         this.results = results;
@@ -62,6 +64,7 @@ public class RunService {
         this.props = props;
         this.llm = llm;
         this.tx = tx;
+        this.fixes = fixes;
     }
 
     /** Asks every selected active scenario with the prompt version in use. */
@@ -83,12 +86,13 @@ public class RunService {
                     .filter(s -> request.scenarios() == null || request.scenarios().isEmpty()
                             || request.scenarios().contains(s.getCode()))
                     .toList();
+            Map<String, ScenarioFixService.Guidance> guidance = fixes.activeGuidance();
             List<PlannedTest> tests = new ArrayList<>();
             for (int attempt = 1; attempt <= repeats; attempt++) {
                 for (TestScenario s : chosen) {
                     for (var q : s.getQuestions()) {
                         if (languages.contains(q.getLanguage())) {
-                            tests.add(planned(s, q.getLanguage(), q.getText(), attempt));
+                            tests.add(planned(s, q.getLanguage(), q.getText(), attempt, guidance));
                         }
                     }
                 }
@@ -134,6 +138,7 @@ public class RunService {
                 cells.putIfAbsent(key, r);
                 failed.merge(key, r.getEffectiveVerdict() != ResultVerdict.PASS, Boolean::logicalOr);
             }
+            Map<String, ScenarioFixService.Guidance> guidance = fixes.activeGuidance();
             List<PlannedTest> tests = new ArrayList<>();
             for (int attempt = 1; attempt <= source.getRepeats(); attempt++) {
                 for (var e : cells.entrySet()) {
@@ -141,7 +146,7 @@ public class RunService {
                     boolean include = failed.get(e.getKey()) || r.getLanguage() == Language.EN
                             || r.getScenario().getKind() == ScenarioKind.CONTROL;
                     if (include) {
-                        tests.add(planned(r.getScenario(), r.getLanguage(), r.getQuestion(), attempt));
+                        tests.add(planned(r.getScenario(), r.getLanguage(), r.getQuestion(), attempt, guidance));
                     }
                 }
             }
@@ -218,9 +223,12 @@ public class RunService {
         }
     }
 
-    private static PlannedTest planned(TestScenario s, Language language, String question, int attempt) {
+    /** One question, with the fix saved for its scenario and language, so the assistant can avoid the earlier failure. */
+    private static PlannedTest planned(TestScenario s, Language language, String question, int attempt,
+            Map<String, ScenarioFixService.Guidance> guidance) {
         return new PlannedTest(s.getId(), s.getTitle(), s.getKind(), s.getRuleSignals(), s.getExpectedBehaviour(),
-                s.getMustDo(), s.getMustNotDo(), s.getShouldDo(), s.getSourceName(), language, question, attempt);
+                s.getMustDo(), s.getMustNotDo(), s.getShouldDo(), s.getSourceName(), language, question, attempt,
+                guidance.get(ScenarioFixService.key(s.getId(), language)));
     }
 
     private static String pick(String requested, String fallback, boolean offered, String role) {

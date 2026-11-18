@@ -31,7 +31,7 @@ class RunRecorderTest {
 
     @Test
     void spotChecksTwentyPercentOfFailuresAndTenPercentOfPassesInEachLanguage() {
-        RunRecorder recorder = new RunRecorder(null, null, null, null, new Random(7));
+        RunRecorder recorder = new RunRecorder(null, null, null, null, null, new Random(7));
         List<TestResult> all = new ArrayList<>();
         all.addAll(answers(Language.TA, ResultVerdict.FAIL, 10));
         all.addAll(answers(Language.TA, ResultVerdict.PASS, 20));

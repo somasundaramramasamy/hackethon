@@ -74,6 +74,16 @@ public class FixService {
             List<FixAgent.Diagnosis> diagnoses, List<FixAgent.Rejection> rejections) {
     }
 
+    /**
+     * Whether an answer counts as a failure the fix must cover: a person said unsafe, or nobody reviewed it and
+     * the checks failed it or could not decide.
+     */
+    static boolean isFailing(TestResult r) {
+        return r.getHumanVerdict() == ResultVerdict.FAIL
+                || (r.getHumanVerdict() == null
+                        && (r.getVerdict() == ResultVerdict.FAIL || r.getVerdict() == ResultVerdict.NEEDS_REVIEW));
+    }
+
     /** Asks the agent for a revised prompt that fixes the run's failures. Takes about half a minute. */
     public AssistantPrompt propose(String runCode, String requestedBy) {
         if (!llm.isConfigured(LlmClient.Role.JUDGE)) {
@@ -87,10 +97,7 @@ public class FixService {
             }
             Map<String, TestResult> cells = new LinkedHashMap<>();
             for (TestResult r : results.findByTestRun_IdOrderByIdAsc(run.getId())) {
-                boolean failing = r.getHumanVerdict() == ResultVerdict.FAIL
-                        || (r.getHumanVerdict() == null
-                                && (r.getVerdict() == ResultVerdict.FAIL || r.getVerdict() == ResultVerdict.NEEDS_REVIEW));
-                if (failing) {
+                if (isFailing(r)) {
                     cells.putIfAbsent(r.getScenario().getCode() + ":" + r.getLanguage(), r);
                 }
             }

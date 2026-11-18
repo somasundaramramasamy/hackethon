@@ -66,7 +66,7 @@ const router = createBrowserRouter([
       {
         path: 'fixes',
         element: <Fixes />,
-        handle: page('Fixes', 'Prompt versions proposed by the agent and approved by people'),
+        handle: page('Fixes', 'What is failing, what the AI suggests, and which fix is in use'),
       },
       {
         path: 'fixes/:version',
