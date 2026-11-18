@@ -35,6 +35,13 @@ public class ReviewController {
         return reviews.queue(run, language);
     }
 
+    /** What people decided; {@code disagreements=true} keeps only answers where the person and judge differ. */
+    @GetMapping("/reviews/history")
+    public java.util.List<ReviewViews.ReviewedItem> history(@RequestParam(required = false) String run,
+            @RequestParam(required = false) String language, @RequestParam(defaultValue = "false") boolean disagreements) {
+        return reviews.reviewed(run, language, disagreements);
+    }
+
     @GetMapping("/reviews/queue/count")
     public Map<String, Long> queueCount() {
         return Map.of("count", reviews.queueSize());

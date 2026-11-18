@@ -158,6 +158,17 @@ class FixLoopIntegrationTest {
                 .andExpect(jsonPath("$.run.awaitingReview").value(2));
         mvc.perform(get("/api/runs")).andExpect(jsonPath("$[0].reviewed").value(1))
                 .andExpect(jsonPath("$[0].awaitingReview").value(2));
+        // The review history lists what people decided, with how it compares with the judge.
+        mvc.perform(get("/api/reviews/history"))
+                .andExpect(jsonPath("$", hasSize(1)))
+                .andExpect(jsonPath("$[0].id").value(failedId))
+                .andExpect(jsonPath("$[0].humanVerdict").value("fail"))
+                .andExpect(jsonPath("$[0].judgeVerdict").value("fail"))
+                .andExpect(jsonPath("$[0].agreement").value("agreed"))
+                .andExpect(jsonPath("$[0].reviewedBy").value("Yokeshwaran"))
+                .andExpect(jsonPath("$[0].note").value("Calls it gas."));
+        mvc.perform(get("/api/reviews/history?disagreements=true")).andExpect(jsonPath("$", hasSize(0)));
+        mvc.perform(get("/api/reviews/history?language=EN")).andExpect(jsonPath("$", hasSize(0)));
         mvc.perform(get("/api/reviews/agreement"))
                 .andExpect(jsonPath("$.overall.reviewed").value(1))
                 .andExpect(jsonPath("$.overall.rate").value(100.0));

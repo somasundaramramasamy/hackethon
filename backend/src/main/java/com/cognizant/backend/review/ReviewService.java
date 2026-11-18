@@ -84,6 +84,42 @@ public class ReviewService {
                 items, results.countReviewedSelection(run.getId()), unsure, queued.size() - unsure);
     }
 
+    /**
+     * What people decided in one run (default: the latest completed baseline), optionally for one
+     * language or only where the person disagreed with the judge.
+     */
+    public List<ReviewViews.ReviewedItem> reviewed(String runCode, String language, boolean disagreementsOnly) {
+        TestRun run = StringUtils.hasText(runCode)
+                ? runs.findByCode(runCode).orElseThrow(() -> new ResourceNotFoundException("Run " + runCode + " not found"))
+                : defaultRun().orElse(null);
+        if (run == null) {
+            return List.of();
+        }
+        Language filter = parseLanguage(language);
+        return results.findReviewed(run.getId()).stream()
+                .filter(r -> filter == null || r.getLanguage() == filter)
+                .map(r -> new ReviewViews.ReviewedItem(r.getId(), run.getCode(), r.getScenario().getCode(),
+                        r.getScenario().getTitle(), r.getLanguage().name(), r.getLanguage().getDisplayName(),
+                        r.getAttempt(), lower(r.getVerdict().name()),
+                        r.getJudgeVerdict() == null ? null : lower(r.getJudgeVerdict().name()),
+                        lower(r.getHumanVerdict().name()), agreementOf(r.getJudgeVerdict(), r.getHumanVerdict()),
+                        r.getReviewedBy(), r.getReviewNote(), r.getReviewedAt()))
+                .filter(i -> !disagreementsOnly || i.agreement().equals("missed_failure")
+                        || i.agreement().equals("false_alarm"))
+                .toList();
+    }
+
+    /** Same rule as the agreement rate: only the judge's definite verdicts are compared. */
+    static String agreementOf(ResultVerdict judge, ResultVerdict human) {
+        if (judge != ResultVerdict.PASS && judge != ResultVerdict.FAIL) {
+            return "not_compared";
+        }
+        if (judge == human) {
+            return "agreed";
+        }
+        return judge == ResultVerdict.PASS ? "missed_failure" : "false_alarm";
+    }
+
     /** How many answers of the default run wait for a person: the number on the navigation badge. */
     public long queueSize() {
         return defaultRun().map(r -> waitingPerRun().getOrDefault(r.getId(), 0L)).orElse(0L);

@@ -1,6 +1,6 @@
 import { Link, useSearchParams } from 'react-router-dom'
-import { ClipboardCheck, Languages, LayoutDashboard, Scale, Stethoscope } from 'lucide-react'
-import { getAgreement, getReviewQueue } from '../api/client'
+import { ClipboardCheck, History, Languages, LayoutDashboard, Scale, Stethoscope } from 'lucide-react'
+import { getAgreement, getReviewHistory, getReviewQueue } from '../api/client'
 import { useLoad } from '../hooks/useLoad'
 import { useIdentity } from '../state/identity'
 import { AuditTag, Card, ErrorState, LangChip, Loading, Progress, Verdict } from '../components/ui'
@@ -38,8 +38,12 @@ export default function ReviewQueue() {
   // A shared link (?language=HI) wins, then the last choice in this browser, then the person's role:
   // a reviewer's own language, or English for a clinician.
   const language = params.has('language') ? params.get('language') : savedLanguage() || roleLanguage(identity)
+  const view = params.get('view') === 'reviewed' ? 'reviewed' : 'waiting'
+  const disagreements = params.get('disagreements') === '1'
   const queue = useLoad(() => getReviewQueue({ run, language }), [run, language])
   const agreement = useLoad(getAgreement, [])
+  // Everything reviewed in the run; the language and disagreement filters apply below.
+  const history = useLoad(() => getReviewHistory({ run }), [run])
 
   const choose = (changes) => {
     const next = new URLSearchParams(params)
@@ -54,9 +58,46 @@ export default function ReviewQueue() {
   const page = queue.data
   return (
     <div className="page">
-      {page?.runCode && <ReviewDashboard page={page} agreement={agreement} onLanguage={(l) => choose({ language: l })} />}
+      {page?.runCode && (
+        <ReviewDashboard
+          page={page}
+          agreement={agreement}
+          onLanguage={(l) => choose({ language: l, view: '' })}
+          onReviewed={() => choose({ view: 'reviewed' })}
+        />
+      )}
 
-      <Card title="Waiting for review" icon={ClipboardCheck}>
+      <Card title={view === 'reviewed' ? 'Reviewed' : 'Waiting for review'} icon={view === 'reviewed' ? History : ClipboardCheck}>
+        <div className="review-tabs" role="tablist" aria-label="Review queue">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={view === 'waiting'}
+            className={view === 'waiting' ? 'active' : ''}
+            onClick={() => choose({ view: '', disagreements: '' })}
+          >
+            Waiting <span className="count">{page ? page.languages.reduce((sum, l) => sum + l.waiting, 0) : '…'}</span>
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={view === 'reviewed'}
+            className={view === 'reviewed' ? 'active' : ''}
+            onClick={() => choose({ view: 'reviewed' })}
+          >
+            Reviewed <span className="count">{history.data ? history.data.length : '…'}</span>
+          </button>
+        </div>
+        {view === 'reviewed' ? (
+          <ReviewedPanel
+            page={page}
+            history={history}
+            language={language}
+            disagreements={disagreements}
+            onChange={choose}
+          />
+        ) : (
+          <>
         <p className="muted card-intro">
           Answers the automated checks could not decide, plus a random spot-check of 20% of failures and 10% of passes
           in each language, so the judge&apos;s mistakes in either direction are measured. Native speakers review
@@ -79,6 +120,8 @@ export default function ReviewQueue() {
             ) : (
               <QueueTable items={page.items} loading={queue.loading} />
             )}
+          </>
+        )}
           </>
         )}
       </Card>
@@ -117,6 +160,127 @@ function QueueFilters({ page, language, onChange }) {
         ))}
       </div>
     </div>
+  )
+}
+
+/** What people decided in the chosen run, with how each decision compares with the judge. */
+function ReviewedPanel({ page, history, language, disagreements, onChange }) {
+  if (history.loading && !history.data) return <Loading />
+  if (history.error) return <ErrorState error={history.error} />
+  const all = history.data
+  const isDisagreement = (i) => i.agreement === 'missed_failure' || i.agreement === 'false_alarm'
+  const lang = language?.toUpperCase() || ''
+  const items = all.filter((i) => (!lang || i.language === lang) && (!disagreements || isDisagreement(i)))
+  const count = (code) => all.filter((i) => i.language === code).length
+  return (
+    <>
+      <p className="muted card-intro">
+        Every decision people made in this test, signed with their name and role. Open one to see the answer or change
+        the decision. Disagreements with the judge are what the agreement rate is built from.
+      </p>
+      <div className="queue-filters">
+        {page && (
+          <label className="field queue-run">
+            <span className="field-label">Run</span>
+            <select value={page.runCode ?? ''} onChange={(e) => onChange({ run: e.target.value })}>
+              {page.runs.map((r) => (
+                <option key={r.code} value={r.code}>
+                  {r.name} · {r.code}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
+        <div className="lang-filter" role="group" aria-label="Language">
+          <button type="button" className={!lang ? 'active' : ''} aria-pressed={!lang} onClick={() => onChange({ language: '' })}>
+            All <span className="count">{all.length}</span>
+          </button>
+          {(page?.languages ?? []).map((l) => (
+            <button
+              key={l.language}
+              type="button"
+              className={lang === l.language ? 'active' : ''}
+              aria-pressed={lang === l.language}
+              onClick={() => onChange({ language: l.language })}
+            >
+              {l.languageName} <span className="count">{count(l.language)}</span>
+            </button>
+          ))}
+        </div>
+        <label className="check disagreement-toggle">
+          <input
+            type="checkbox"
+            checked={disagreements}
+            onChange={(e) => onChange({ disagreements: e.target.checked ? '1' : '' })}
+          />
+          Disagreements with the judge only ({all.filter(isDisagreement).length})
+        </label>
+      </div>
+      {items.length === 0 ? (
+        <p className="muted">
+          {all.length === 0 ? 'No one has reviewed an answer in this test yet.' : 'No reviewed answers match these filters.'}
+        </p>
+      ) : (
+        <div className="table-wrap">
+          <table className="table">
+            <thead>
+              <tr>
+                <th>Answer</th>
+                <th>Language</th>
+                <th>Judge → person</th>
+                <th>Compared with the judge</th>
+                <th>Signed by</th>
+                <th>Reviewed</th>
+              </tr>
+            </thead>
+            <tbody>
+              {items.map((i) => (
+                <tr key={i.id}>
+                  <td>
+                    <Link className="run-id queue-answer" to={`/results/${i.id}`}>
+                      {i.scenarioCode} {i.scenarioTitle}
+                    </Link>
+                    <div className="muted small">attempt {i.attempt}</div>
+                    {i.note && <div className="small review-note">“{i.note}”</div>}
+                  </td>
+                  <td>
+                    <LangChip code={i.language} /> {i.languageName}
+                  </td>
+                  <td className="nowrap">
+                    <span className="verdict-row">
+                      {i.judgeVerdict ? <Verdict value={i.judgeVerdict} /> : <span className="muted">—</span>}
+                      <span className="muted">→</span>
+                      <Verdict value={i.humanVerdict} />
+                    </span>
+                  </td>
+                  <td>
+                    <AgreementTag value={i.agreement} />
+                  </td>
+                  <td className="small">{i.reviewedBy}</td>
+                  <td className="nowrap small muted">{formatDate(i.reviewedAt)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </>
+  )
+}
+
+const AGREEMENT = {
+  agreed: ['Agreed', 'tag-success', 'The person and the judge gave the same verdict'],
+  missed_failure: ['Missed failure', 'tag-danger', 'The judge passed it; the person found it unsafe'],
+  false_alarm: ['False alarm', 'tag-warning', 'The judge failed it; the person found it safe'],
+  not_compared: ['Not compared', 'tag-muted', 'The judge was unsure or unavailable, so there is nothing to compare'],
+}
+
+function AgreementTag({ value }) {
+  const [label, className, title] = AGREEMENT[value] ?? [value, 'tag-muted', '']
+  return (
+    <span className={`tag ${className}`} title={title}>
+      {label}
+    </span>
   )
 }
 
@@ -167,7 +331,7 @@ function QueueTable({ items, loading }) {
  * What is left to review in the chosen run, and whose job it is: English answers go to a clinician,
  * the others to a native speaker of the language. Language counts set the filter below.
  */
-function ReviewDashboard({ page, agreement, onLanguage }) {
+function ReviewDashboard({ page, agreement, onLanguage, onReviewed }) {
   const count = (code) => page.languages.find((l) => l.language === code)?.waiting ?? 0
   const waiting = page.languages.reduce((sum, l) => sum + l.waiting, 0)
   const english = count('EN')
@@ -181,9 +345,9 @@ function ReviewDashboard({ page, agreement, onLanguage }) {
           <span className="review-stat-label">Waiting for review</span>
           <span className="review-stat-value">{waiting}</span>
           <Progress done={page.reviewed} total={picked} />
-          <span className="muted small">
+          <button type="button" className="link small review-stat-link" onClick={onReviewed}>
             {page.reviewed} of {picked} picked answers reviewed
-          </span>
+          </button>
         </div>
 
         <button type="button" className="review-stat clickable" onClick={() => onLanguage('EN')}>
