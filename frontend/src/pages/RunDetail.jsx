@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { Languages, ListChecks, Wand2, ArrowRight, Info } from 'lucide-react'
-import { getRun, proposeFix } from '../api/client'
+import { Languages, ListChecks, Wand2, ArrowRight, Info, Pencil } from 'lucide-react'
+import { getRun, proposeFix, renameRun } from '../api/client'
 import { useLoad } from '../hooks/useLoad'
 import { AuditTag, Card, ErrorState, LangChip, Loading, Notice, Progress, StatusPill, Verdict } from '../components/ui'
 import LanguageBars from '../components/LanguageBars'
@@ -13,7 +13,7 @@ const LANGS = ['EN', 'TA', 'HI', 'ML']
 
 export default function RunDetail() {
   const { code } = useParams()
-  const { data, error, loading } = useLoad(() => getRun(code), [code], {
+  const { data, error, loading, reload } = useLoad(() => getRun(code), [code], {
     shouldPoll: (d) => d?.run.status === 'running',
   })
   if (loading && !data) return <Loading />
@@ -26,10 +26,10 @@ export default function RunDetail() {
       <Card className="run-header-card">
         <div className="run-summary">
           <div>
-            <div className="run-title">
-              <h2>{run.code}</h2> <StatusPill status={run.status} />
-            </div>
-            <p className="muted">{run.type === 'retest' ? `Retest of ${run.baselineRun} with prompt v${run.promptVersion}` : run.suite}</p>
+            <RunName run={run} onRenamed={reload} />
+            <p className="muted">
+              {run.code} · {run.type === 'retest' ? `Retest of ${run.baselineRun} with prompt v${run.promptVersion}` : run.suite}
+            </p>
           </div>
           <dl className="facts">
             <div>
@@ -192,6 +192,70 @@ function RunActions({ run }) {
         </span>
       )}
       {failure && <Notice kind="error">{failure}</Notice>}
+    </div>
+  )
+}
+
+/** The run's name, which people can change; the code, and every link, stays the same. */
+function RunName({ run, onRenamed }) {
+  const settings = useSettings()
+  const [editing, setEditing] = useState(false)
+  const [draft, setDraft] = useState(run.name)
+  const [busy, setBusy] = useState(false)
+  const [failure, setFailure] = useState(null)
+
+  const save = async (e) => {
+    e.preventDefault()
+    setBusy(true)
+    setFailure(null)
+    try {
+      await renameRun(run.code, draft)
+      await onRenamed()
+      setEditing(false)
+    } catch (err) {
+      setFailure(err.message)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  if (editing) {
+    return (
+      <form className="run-rename" onSubmit={save}>
+        <input
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          maxLength={120}
+          aria-label="Test name"
+          autoFocus
+          onKeyDown={(e) => e.key === 'Escape' && setEditing(false)}
+        />
+        <button className="btn-primary" type="submit" disabled={busy || !draft.trim()}>
+          Save
+        </button>
+        <button className="btn-link" type="button" onClick={() => setEditing(false)}>
+          Cancel
+        </button>
+        {failure && <Notice kind="error">{failure}</Notice>}
+      </form>
+    )
+  }
+  return (
+    <div className="run-title">
+      <h2>{run.name}</h2> <StatusPill status={run.status} />
+      {!settings?.readOnly && (
+        <button
+          className="icon-btn"
+          onClick={() => {
+            setDraft(run.name)
+            setEditing(true)
+          }}
+          aria-label="Rename this test"
+          title="Rename this test"
+        >
+          <Pencil size={16} />
+        </button>
+      )}
     </div>
   )
 }

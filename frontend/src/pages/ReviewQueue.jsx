@@ -4,7 +4,7 @@ import { getAgreement, getReviewQueue } from '../api/client'
 import { useLoad } from '../hooks/useLoad'
 import { useIdentity } from '../state/identity'
 import { AuditTag, Card, ErrorState, LangChip, Loading, Verdict } from '../components/ui'
-import { formatDate, percent, shortModel } from '../utils/format'
+import { formatDate, percent } from '../utils/format'
 
 const LANGUAGE_KEY = 'kavasam.reviewLanguage'
 
@@ -102,7 +102,7 @@ function QueueFilters({ page, language, onChange }) {
         <select value={page.runCode ?? ''} onChange={(e) => onChange({ run: e.target.value })}>
           {page.runs.map((r) => (
             <option key={r.code} value={r.code}>
-              {r.code} · {r.type} · {shortModel(r.model)} · {r.waiting} waiting
+              {r.name} · {r.code} · {r.waiting} waiting
             </option>
           ))}
         </select>

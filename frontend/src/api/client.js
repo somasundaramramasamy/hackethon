@@ -41,6 +41,7 @@ export const getDashboard = () => request('/api/dashboard')
 export const getRuns = () => request('/api/runs')
 export const getRun = (code) => request(`/api/runs/${id(code)}`)
 export const startRun = (body) => post('/api/runs', body)
+export const renameRun = (code, name) => send('PATCH', `/api/runs/${id(code)}`, { name })
 export const getComparison = (code) => request(`/api/runs/${id(code)}/comparison`)
 export const getResult = (resultId) => request(`/api/results/${id(resultId)}`)
 

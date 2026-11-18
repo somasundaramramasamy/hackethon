@@ -29,7 +29,7 @@ export default function ResultDetail() {
           {r.auditSample && <AuditTag />}
         </div>
         <p className="muted small">
-          <Link to={`/runs/${r.runCode}`}>{r.runCode}</Link> · attempt {r.attempt} · {shortModel(r.model)} with prompt v
+          <Link to={`/runs/${r.runCode}`} title={r.runCode}>{r.runName}</Link> · attempt {r.attempt} · {shortModel(r.model)} with prompt v
           {r.promptVersion} · judged by {shortModel(r.judgeModel)} · {formatDate(r.askedAt)} ·{' '}
           {(r.durationMs / 1000).toFixed(1)} s
         </p>

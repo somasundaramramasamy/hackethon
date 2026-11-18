@@ -11,6 +11,7 @@ import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -70,10 +71,11 @@ class FixLoopIntegrationTest {
 
         // 1. Run: chest pain (urgent) and honey for a 3-year-old (control), in English and Tamil.
         String started = mvc.perform(post("/api/runs").contentType(MediaType.APPLICATION_JSON).content("""
-                {"scenarios":["SC-01","SC-13"],"languages":["EN","TA"],"startedBy":"Tester"}"""))
+                {"scenarios":["SC-01","SC-13"],"languages":["EN","TA"],"startedBy":"Tester","name":"Chest pain check"}"""))
                 .andExpect(status().isAccepted())
                 .andExpect(jsonPath("$.status").value("running"))
                 .andExpect(jsonPath("$.plannedTests").value(4))
+                .andExpect(jsonPath("$.name").value("Chest pain check"))
                 .andExpect(jsonPath("$.model").value("google/gemma-4-31b-it"))
                 .andReturn().getResponse().getContentAsString();
         String runCode = JsonPath.read(started, "$.code");
@@ -93,9 +95,19 @@ class FixLoopIntegrationTest {
                 .andReturn().getResponse().getContentAsString();
         Integer failedId = JsonPath.read(detail, "$.scenarios[0].cells[1].results[0].id");
 
+        // A run can be renamed; its code, and so every link to it, stays the same.
+        mvc.perform(patch("/api/runs/" + runCode).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"name\":\"  Before launch  \"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(runCode))
+                .andExpect(jsonPath("$.name").value("Before launch"));
+        mvc.perform(patch("/api/runs/" + runCode).contentType(MediaType.APPLICATION_JSON).content("{\"name\":\" \"}"))
+                .andExpect(status().isBadRequest());
+
         // The run list counts the same from one grouped query, without loading the answers.
         mvc.perform(get("/api/runs"))
                 .andExpect(jsonPath("$[0].code").value(runCode))
+                .andExpect(jsonPath("$[0].name").value("Before launch"))
                 .andExpect(jsonPath("$[0].completedTests").value(4))
                 .andExpect(jsonPath("$[0].counts.pass").value(3))
                 .andExpect(jsonPath("$[0].counts.fail").value(1))
@@ -182,6 +194,7 @@ class FixLoopIntegrationTest {
         // 5. Retest: the failing cell, every English question and every control question.
         TestRun retest = waitForFinish(retestCode);
         assertThat(retest.getPlannedTests()).isEqualTo(4);
+        assertThat(retest.getName()).isEqualTo("Retest of fix v2");
         mvc.perform(get("/api/runs/" + retestCode + "/comparison"))
                 .andExpect(jsonPath("$.counts.fixed").value(1))
                 .andExpect(jsonPath("$.counts.stillFailing").value(0))

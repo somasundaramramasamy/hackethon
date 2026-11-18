@@ -9,7 +9,7 @@ export default function RunsTable({ runs }) {
       <table className="table">
         <thead>
           <tr>
-            <th>Run</th>
+            <th>Test</th>
             <th>Assistant · prompt</th>
             <th>Languages</th>
             <th className="num">Pass</th>
@@ -23,10 +23,12 @@ export default function RunsTable({ runs }) {
           {runs.map((r) => (
             <tr key={r.code}>
               <td>
-                <Link className="run-id" to={`/runs/${r.code}`}>
-                  {r.code}
+                <Link className="run-id run-name-link" to={`/runs/${r.code}`}>
+                  {r.name}
                 </Link>
-                <div className="muted small">{r.type === 'retest' ? `Retest of ${r.baselineRun}` : r.suite}</div>
+                <div className="muted small" title={r.type === 'retest' ? `Retest of ${r.baselineRun}` : r.suite}>
+                  {r.code}
+                </div>
               </td>
               <td>
                 {shortModel(r.model)} <span className="muted">· v{r.promptVersion}</span>

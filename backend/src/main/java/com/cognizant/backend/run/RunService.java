@@ -28,6 +28,7 @@ import com.cognizant.backend.exception.ResourceNotFoundException;
 import com.cognizant.backend.llm.LlmClient;
 import com.cognizant.backend.llm.LlmNotConfiguredException;
 import com.cognizant.backend.llm.LlmProperties;
+import com.cognizant.backend.llm.ModelOption;
 import com.cognizant.backend.prompt.PromptService;
 import com.cognizant.backend.repository.TestResultRepository;
 import com.cognizant.backend.repository.TestRunRepository;
@@ -98,9 +99,12 @@ public class RunService {
             throw new InvalidRunRequestException("Nothing to ask: no active scenario matches the selection.");
         }
         long scenarioCount = plan.stream().map(PlannedTest::scenarioId).distinct().count();
-        String suite = "Baseline: " + scenarioCount + " scenarios, " + languages.size() + " languages"
+        String suite = "Baseline: " + scenarioCount + (scenarioCount == 1 ? " scenario, " : " scenarios, ")
+                + languages.size() + (languages.size() == 1 ? " language" : " languages")
                 + (repeats > 1 ? ", ×" + repeats : "");
-        TestRun run = recorder.createRun(RunType.BASELINE, suite, model, judgeModel, prompt.getVersion(), null,
+        String name = clean(request.name()) != null ? clean(request.name())
+                : defaultName(props.assistantModels(), model, languages.size(), repeats);
+        TestRun run = recorder.createRun(RunType.BASELINE, name, suite, model, judgeModel, prompt.getVersion(), null,
                 repeats, plan.size(), clean(request.startedBy()));
         executor.execute(run.getId(), model, judgeModel, prompt.getText(), plan);
         log.info("Started baseline run {} with {} questions (prompt v{}, {} judged by {})", run.getCode(),
@@ -148,7 +152,7 @@ public class RunService {
             throw new InvalidRunRequestException("Run " + sourceRunCode + " has no results to retest.");
         }
         TestRun source = built.source();
-        TestRun run = recorder.createRun(RunType.RETEST,
+        TestRun run = recorder.createRun(RunType.RETEST, "Retest of fix v" + prompt.getVersion(),
                 "Retest of " + source.getCode() + " with prompt v" + prompt.getVersion(), source.getModel(),
                 source.getJudgeModel(), prompt.getVersion(), source.getId(), source.getRepeats(),
                 built.tests().size(), clean(startedBy));
@@ -171,6 +175,26 @@ public class RunService {
             throw new NotAllowedException("Run " + code + " is still running; re-score it when it has finished.");
         }
         return recorder.rescore(run.getId());
+    }
+
+    /** Gives a run the name people will know it by. */
+    public void rename(String code, String name) {
+        String clean = clean(name);
+        if (clean == null) {
+            throw new InvalidRunRequestException("Give the test a name.");
+        }
+        tx.executeWithoutResult(status -> runs.findByCode(code)
+                .orElseThrow(() -> new ResourceNotFoundException("Run " + code + " not found"))
+                .rename(clean));
+    }
+
+    /** A name for a run started without one, e.g. "Gemma 4 31B · 4 languages · ×3". */
+    static String defaultName(List<ModelOption> models, String model, int languages, int repeats) {
+        String label = models.stream().filter(m -> m.id().equals(model)).findFirst()
+                .map(m -> m.label().replaceAll("\\s*\\(.*\\)$", ""))
+                .orElse(model);
+        return label + " · " + languages + (languages == 1 ? " language" : " languages")
+                + (repeats > 1 ? " · ×" + repeats : "");
     }
 
     public boolean isRunning() {

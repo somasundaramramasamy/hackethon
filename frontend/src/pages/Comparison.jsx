@@ -26,8 +26,8 @@ export default function Comparison() {
     <div className="page">
       <Card title={`Prompt v${baseline.promptVersion} → v${retest.promptVersion}`} icon={GitCompare}>
         <p className="muted small">
-          <Link to={`/runs/${baseline.code}`}>{baseline.code}</Link> compared with its retest{' '}
-          <Link to={`/runs/${retest.code}`}>{retest.code}</Link>. The retest asks every question that did not pass,
+          <Link to={`/runs/${baseline.code}`}>{baseline.name}</Link> compared with its retest{' '}
+          <Link to={`/runs/${retest.code}`}>{retest.name}</Link>. The retest asks every question that did not pass,
           plus every English and control question, so a fix cannot hide a regression.
         </p>
         {retest.status === 'running' && <Notice>The retest is still running; the numbers will update.</Notice>}

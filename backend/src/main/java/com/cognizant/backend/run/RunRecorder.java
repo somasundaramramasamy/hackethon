@@ -73,12 +73,14 @@ public class RunRecorder {
     }
 
     @Transactional
-    public TestRun createRun(RunType type, String suite, String model, String judgeModel, int promptVersion,
-            Long baselineRunId, int repeats, int plannedTests, String startedBy) {
+    public TestRun createRun(RunType type, String name, String suite, String model, String judgeModel,
+            int promptVersion, Long baselineRunId, int repeats, int plannedTests, String startedBy) {
         LocalDateTime now = LocalDateTime.now();
         String prefix = type == RunType.RETEST ? "RT-" : "RUN-";
-        return runs.save(new TestRun(prefix + now.format(CODE_FORMAT), suite, type, model, judgeModel, promptVersion,
-                baselineRunId, repeats, plannedTests, startedBy, now));
+        TestRun run = new TestRun(prefix + now.format(CODE_FORMAT), suite, type, model, judgeModel, promptVersion,
+                baselineRunId, repeats, plannedTests, startedBy, now);
+        run.rename(name);
+        return runs.save(run);
     }
 
     /** Saves an answer that was checked by the rules and (if reachable) the judge. */

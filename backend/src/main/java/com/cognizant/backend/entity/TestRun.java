@@ -76,6 +76,10 @@ public class TestRun {
     @Column(length = 100)
     private String startedBy;
 
+    /** What people call this run, e.g. "Before launch - full check"; null for older runs. */
+    @Column(length = 120)
+    private String name;
+
     protected TestRun() {
     }
 
@@ -109,6 +113,30 @@ public class TestRun {
 
     public LocalDateTime getRescoredAt() {
         return rescoredAt;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void rename(String name) {
+        this.name = name == null || name.isBlank() ? null : name.strip();
+    }
+
+    /** The name to show: the given one, or one built from what the run did. */
+    public String getDisplayName() {
+        if (name != null) {
+            return name;
+        }
+        return type == RunType.RETEST ? "Retest of fix v" + promptVersion : "Test of " + shortModel(model);
+    }
+
+    private static String shortModel(String model) {
+        if (model == null) {
+            return "unknown model";
+        }
+        int slash = model.lastIndexOf('/');
+        return slash >= 0 ? model.substring(slash + 1) : model;
     }
 
     /** Marks a run that can no longer finish, e.g. after a restart. */

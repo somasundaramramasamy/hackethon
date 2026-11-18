@@ -1,6 +1,7 @@
 package com.cognizant.backend.run;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -63,6 +64,8 @@ class ApiGuardsTest {
                     .andExpect(status().isForbidden())
                     .andExpect(jsonPath("$.title").value("Read-Only Demo"));
             mvc.perform(post("/api/prompts/1/adopt").contentType(MediaType.APPLICATION_JSON).content("{}"))
+                    .andExpect(status().isForbidden());
+            mvc.perform(patch("/api/runs/RUN-1").contentType(MediaType.APPLICATION_JSON).content("{\"name\":\"x\"}"))
                     .andExpect(status().isForbidden());
             mvc.perform(get("/api/scenarios")).andExpect(status().isOk());
             mvc.perform(get("/api/settings")).andExpect(jsonPath("$.readOnly").value(true));

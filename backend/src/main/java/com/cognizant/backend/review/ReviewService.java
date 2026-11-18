@@ -53,7 +53,7 @@ public class ReviewService {
         Map<Long, Long> waiting = waitingPerRun();
         List<ReviewViews.RunOption> options = runs.findAllByOrderByStartedAtDesc().stream()
                 .filter(r -> r.getStatus() != RunStatus.RUNNING)
-                .map(r -> new ReviewViews.RunOption(r.getCode(), lower(r.getType().name()), r.getModel(),
+                .map(r -> new ReviewViews.RunOption(r.getCode(), r.getDisplayName(), lower(r.getType().name()), r.getModel(),
                         r.getPromptVersion(), r.getStartedAt().atZone(ZoneId.systemDefault()).toInstant(),
                         waiting.getOrDefault(r.getId(), 0L)))
                 .toList();
