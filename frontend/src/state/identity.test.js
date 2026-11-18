@@ -22,7 +22,7 @@ describe('roles', () => {
     expect(ROLES.reviewer.home('HI')).toBe('/reviews?language=HI')
     expect(ROLES.clinician.home()).toBe('/reviews?language=EN')
     expect(ROLES.lead.home()).toBe('/')
-    expect(ROLES.engineer.home()).toBe('/runs')
+    expect(ROLES.engineer.home()).toBe('/')
   })
 
   it('labels the role for the top bar', () => {

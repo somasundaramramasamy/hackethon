@@ -1,10 +1,11 @@
 import { useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { Languages, ListChecks, Wand2, ArrowRight, Info, Pencil } from 'lucide-react'
 import { getRun, proposeFix, renameRun } from '../api/client'
 import { useLoad } from '../hooks/useLoad'
 import { AuditTag, Card, ErrorState, LangChip, Loading, Notice, Progress, StatusPill, Verdict } from '../components/ui'
 import LanguageBars from '../components/LanguageBars'
+import Stepper from '../components/Stepper'
 import { formatDate, percent, shortModel } from '../utils/format'
 import { useSettings } from '../state/settings'
 import { useSigner } from '../state/identity'
@@ -13,6 +14,7 @@ const LANGS = ['EN', 'TA', 'HI', 'ML']
 
 export default function RunDetail() {
   const { code } = useParams()
+  const location = useLocation()
   const { data, error, loading, reload } = useLoad(() => getRun(code), [code], {
     shouldPoll: (d) => d?.run.status === 'running',
   })
@@ -24,6 +26,9 @@ export default function RunDetail() {
   return (
     <div className="page">
       <Card className="run-header-card">
+        {(location.state?.fromNewTest || data.run.status === 'running') && data.run.type === 'baseline' && (
+          <Stepper current={data.run.status === 'running' ? 3 : 4} />
+        )}
         <div className="run-summary">
           <div>
             <RunName run={run} onRenamed={reload} />
