@@ -29,13 +29,16 @@ export default function IdentityDialog({ disabled }) {
 
   const close = () => setAsked(null)
   const done = (next) => {
+    const previous = identity
     saveIdentity(next)
     const pending = asked?.then
     setAsked(null)
     if (pending) {
+      // Asked for an action: finish it where the person is.
       pending(signatureOf(next))
-    } else if (location.pathname === '/') {
-      // Opening the app: go where this role usually works. Shared links keep their page.
+    } else if (asked ? roleChanged(previous, next) : location.pathname === '/') {
+      // A new role from the top bar, or opening the app: go where this role works. Shared links keep
+      // their page, and a corrected name stays put.
       navigate(ROLES[next.role].home(next.language))
     }
   }
@@ -145,4 +148,8 @@ function IdentityForm({ initial, forAction, onSubmit, onViewer, viewerLabel }) {
       </form>
     </div>
   )
+}
+
+function roleChanged(previous, next) {
+  return previous?.role !== next.role || (next.role === 'reviewer' && previous?.language !== next.language)
 }
