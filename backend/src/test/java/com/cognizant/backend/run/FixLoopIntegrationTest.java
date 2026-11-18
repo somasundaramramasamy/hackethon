@@ -152,6 +152,8 @@ class FixLoopIntegrationTest {
                 .andExpect(jsonPath("$.review.reviewedBy").value("Yokeshwaran"));
         mvc.perform(get("/api/reviews/queue")).andExpect(jsonPath("$.items", hasSize(2)))
                 .andExpect(jsonPath("$.reviewed").value(1))
+                .andExpect(jsonPath("$.agreement.reviewed").value(1))
+                .andExpect(jsonPath("$.agreement.rate").value(100.0))
                 .andExpect(jsonPath("$.items[*].verdict", everyItem(is("pass"))));
         mvc.perform(get("/api/runs/" + runCode))
                 .andExpect(jsonPath("$.run.reviewed").value(1))

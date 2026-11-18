@@ -59,7 +59,7 @@ public class ReviewService {
                 .toList();
         if (run == null) {
             return new ReviewViews.QueuePage(null, filter == null ? null : filter.name(), options, List.of(), List.of(),
-                    0, 0, 0);
+                    0, 0, 0, agreement("this test", List.of()));
         }
         List<TestResult> queued = results.findReviewQueue(run.getId()).stream()
                 .sorted(Comparator.comparing((TestResult r) -> r.getVerdict() == ResultVerdict.NEEDS_REVIEW ? 0 : 1)
@@ -80,8 +80,13 @@ public class ReviewService {
                         r.getAskedAt()))
                 .toList();
         long unsure = queued.stream().filter(r -> r.getVerdict() == ResultVerdict.NEEDS_REVIEW).count();
+        // Agreement in this run: reviewed answers where the judge gave a definite verdict.
+        List<TestResult> comparable = results.findReviewed(run.getId()).stream()
+                .filter(r -> r.getJudgeVerdict() == ResultVerdict.PASS || r.getJudgeVerdict() == ResultVerdict.FAIL)
+                .toList();
         return new ReviewViews.QueuePage(run.getCode(), filter == null ? null : filter.name(), options, languages,
-                items, results.countReviewedSelection(run.getId()), unsure, queued.size() - unsure);
+                items, results.countReviewedSelection(run.getId()), unsure, queued.size() - unsure,
+                agreement(run.getJudgeModel(), comparable));
     }
 
     /**

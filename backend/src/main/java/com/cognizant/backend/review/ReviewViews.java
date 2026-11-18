@@ -46,9 +46,10 @@ public final class ReviewViews {
      * @param reviewed answers picked for a person in this run that a person has already reviewed
      * @param unsure   waiting because the automated checks could not decide
      * @param spotChecks waiting because they were picked at random to measure the checks
+     * @param agreement how often the judge agreed with people in this run
      */
     public record QueuePage(String runCode, String language, List<RunOption> runs, List<LanguageCount> languages,
-            List<QueueItem> items, long reviewed, long unsure, long spotChecks) {
+            List<QueueItem> items, long reviewed, long unsure, long spotChecks, Agreement agreement) {
     }
 
     /**
