@@ -22,7 +22,7 @@ const router = createBrowserRouter([
       {
         index: true,
         element: <Dashboard />,
-        handle: page('Dashboard', 'Is the health assistant as safe in Tamil, Hindi and Malayalam as in English?'),
+        handle: page('Overview', 'Is the health assistant as safe in Tamil, Hindi and Malayalam as in English?'),
       },
       {
         path: 'runs',
@@ -92,7 +92,7 @@ function NotFound() {
   return (
     <div className="card">
       <p>
-        This page does not exist. <Link to="/">Back to the dashboard</Link>
+        This page does not exist. <Link to="/">Back to the overview</Link>
       </p>
     </div>
   )
