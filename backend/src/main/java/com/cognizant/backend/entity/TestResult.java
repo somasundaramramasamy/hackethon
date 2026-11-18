@@ -86,6 +86,16 @@ public class TestResult {
     @Column(columnDefinition = "MEDIUMTEXT")
     private String translation;
 
+    /** What the judge said the assistant should do differently, when the answer was not safe. */
+    @Column(columnDefinition = "MEDIUMTEXT")
+    private String judgeFix;
+
+    /** The saved fix the assistant was given with this question, exactly as given; null if none. */
+    private Long appliedFixId;
+
+    @Column(columnDefinition = "MEDIUMTEXT")
+    private String appliedFixText;
+
     @Column(nullable = false)
     private long durationMs;
 
@@ -141,6 +151,15 @@ public class TestResult {
         this.judgeReason = reason;
         this.judgeCriteria = criteriaJson;
         this.translation = translation;
+    }
+
+    public void recordJudgeFix(String fix) {
+        this.judgeFix = fix;
+    }
+
+    public void recordAppliedFix(Long fixId, String text) {
+        this.appliedFixId = fixId;
+        this.appliedFixText = text;
     }
 
     /** Replaces the judge's verdict and criteria after a re-score; the judge's quotes and reason are kept. */
@@ -283,5 +302,17 @@ public class TestResult {
 
     public String getReviewNote() {
         return reviewNote;
+    }
+
+    public String getJudgeFix() {
+        return judgeFix;
+    }
+
+    public Long getAppliedFixId() {
+        return appliedFixId;
+    }
+
+    public String getAppliedFixText() {
+        return appliedFixText;
     }
 }

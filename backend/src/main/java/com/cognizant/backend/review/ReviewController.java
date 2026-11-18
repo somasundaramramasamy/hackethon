@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.cognizant.backend.fix.ScenarioFixService;
 import com.cognizant.backend.run.RunQueryService;
 import com.cognizant.backend.run.RunViews;
 
@@ -22,10 +23,12 @@ public class ReviewController {
 
     private final ReviewService reviews;
     private final RunQueryService queries;
+    private final ScenarioFixService scenarioFixes;
 
-    public ReviewController(ReviewService reviews, RunQueryService queries) {
+    public ReviewController(ReviewService reviews, RunQueryService queries, ScenarioFixService scenarioFixes) {
         this.reviews = reviews;
         this.queries = queries;
+        this.scenarioFixes = scenarioFixes;
     }
 
     /** @param run a run code; the latest completed baseline if omitted. @param language EN, TA, HI or ML */
@@ -55,6 +58,8 @@ public class ReviewController {
     @PostMapping("/results/{id}/review")
     public ResponseEntity<RunViews.ResultDetail> review(@PathVariable Long id, @Valid @RequestBody ReviewRequest request) {
         reviews.review(id, request);
+        // A confirmed failure teaches the next run; a cleared one turns off the fix it gave rise to.
+        scenarioFixes.afterReview(id);
         return ResponseEntity.ok(queries.result(id));
     }
 }

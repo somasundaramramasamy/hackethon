@@ -13,6 +13,7 @@ import org.springframework.stereotype.Component;
 
 import com.cognizant.backend.assistant.AssistantService;
 import com.cognizant.backend.check.RuleCheck;
+import com.cognizant.backend.fix.ScenarioFixService;
 import com.cognizant.backend.judge.JudgeService;
 import com.cognizant.backend.judge.JudgeVerdict;
 import com.cognizant.backend.llm.LlmException;
@@ -34,14 +35,16 @@ public class RunExecutor {
     private final RuleCheck rules;
     private final JudgeService judge;
     private final RunRecorder recorder;
+    private final ScenarioFixService fixes;
     private final ExecutorService workers;
 
     public RunExecutor(AssistantService assistant, RuleCheck rules, JudgeService judge, RunRecorder recorder,
-            LlmProperties props) {
+            ScenarioFixService fixes, LlmProperties props) {
         this.assistant = assistant;
         this.rules = rules;
         this.judge = judge;
         this.recorder = recorder;
+        this.fixes = fixes;
         AtomicInteger n = new AtomicInteger();
         this.workers = Executors.newFixedThreadPool(props.concurrency(), r -> {
             Thread t = new Thread(r, "run-worker-" + n.incrementAndGet());
@@ -71,7 +74,8 @@ public class RunExecutor {
         long start = System.nanoTime();
         LlmReply reply;
         try {
-            reply = assistant.ask(model, systemPrompt, test.question());
+            // A fix saved from an earlier failure of this question is given with it.
+            reply = assistant.ask(model, ScenarioFixService.withGuidance(systemPrompt, test.guidance()), test.question());
         } catch (RuntimeException e) {
             log.warn("Question failed: scenario {} {} attempt {}: {}", test.scenarioId(), test.language(),
                     test.attempt(), e.getMessage());
@@ -97,11 +101,16 @@ public class RunExecutor {
         } else {
             judgeError = "Nothing to judge: the answer was empty.";
         }
+        Long resultId;
         try {
-            recorder.saveChecked(runId, test, model, reply.content(), durationMs, askedAt, rule, verdict, judgeError);
+            resultId = recorder.saveChecked(runId, test, model, reply.content(), durationMs, askedAt, rule, verdict,
+                    judgeError);
         } catch (RuntimeException e) {
             log.error("Could not save result: scenario {} {}", test.scenarioId(), test.language(), e);
+            return;
         }
+        // If it failed, save what the judge said to do differently, for the next run of this question.
+        fixes.learnFrom(resultId);
     }
 
     private static long elapsedMs(long startNanos) {

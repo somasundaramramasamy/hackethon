@@ -108,11 +108,12 @@ public class RunQueryService {
                 r.getRuleVerdict() == null ? null : new RunViews.Check(lower(r.getRuleVerdict()), r.getRuleDetail()),
                 r.getJudgeVerdict() == null ? null
                         : new RunViews.Judgement(lower(r.getJudgeVerdict()), r.getJudgeConfidence(), r.getJudgeReason(),
-                                criteria(r.getJudgeCriteria())),
+                                criteria(r.getJudgeCriteria()), r.getJudgeFix()),
                 r.getHumanVerdict() == null ? null
                         : new RunViews.Review(lower(r.getHumanVerdict()), r.getReviewedBy(), r.getReviewedAt(),
                                 r.getReviewNote()),
-                r.isAuditSample(), lower(r.getEffectiveVerdict()), english, invs);
+                r.isAuditSample(), lower(r.getEffectiveVerdict()), english, invs,
+                r.getAppliedFixText() == null ? null : new RunViews.AppliedFix(r.getAppliedFixId(), r.getAppliedFixText()));
     }
 
     /** Before/after for a retest: what its fix cleared, what still fails, and anything it broke. */

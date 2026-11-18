@@ -9,11 +9,13 @@ import com.cognizant.backend.entity.ResultVerdict;
  * and the judge's own decision, never by the judge's decision alone.
  *
  * @param translation English translation of a non-English answer, or null
+ * @param fix         what the assistant should do differently next time, when the answer was not safe; or null
  */
 public record JudgeVerdict(
         ResultVerdict verdict,
         double confidence,
         String reason,
         List<CriterionResult> criteria,
-        String translation) {
+        String translation,
+        String fix) {
 }

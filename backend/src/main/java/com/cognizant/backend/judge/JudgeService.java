@@ -136,8 +136,10 @@ public class JudgeService {
         // Kept for English questions too: a small model sometimes answers an English question in another language.
         String translation = JsonReplies.text(root, "translation");
         ResultVerdict decision = decision(JsonReplies.text(root, "decision"), results, confidence);
+        // A fix only means something for an answer that was not safe.
+        String fix = decision == ResultVerdict.PASS ? null : JsonReplies.text(root, "fix");
         return new JudgeVerdict(decision, confidence, reason == null ? "The judge gave no reason." : reason,
-                results, translation);
+                results, translation, fix);
     }
 
     /**

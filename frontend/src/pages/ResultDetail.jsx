@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { MessageSquareText, Scale, UserCheck, SearchCheck, CircleCheck, CircleX, CircleHelp } from 'lucide-react'
+import { MessageSquareText, Scale, UserCheck, SearchCheck, CircleCheck, CircleX, CircleHelp, Sparkles } from 'lucide-react'
 import { getResult, startInvestigation, submitReview } from '../api/client'
 import { useLoad } from '../hooks/useLoad'
 import { AuditTag, Card, ErrorState, FormattedText, LangChip, Loading, Notice, Verdict } from '../components/ui'
@@ -41,6 +41,19 @@ export default function ResultDetail() {
           <span className="qa-label">{r.languageName} question</span>
           {r.question}
         </div>
+        {r.appliedFix && (
+          <div className="fix-ai sfix-fix applied-fix">
+            <div className="fix-ai-head">
+              <Sparkles size={16} />
+              <b>Asked with a saved fix</b>
+              <span className="muted small">learned from an earlier failure of this question</span>
+              <Link className="link small" to="/fixes">
+                Fixes
+              </Link>
+            </div>
+            <p className="fix-ai-fix sfix-text">{r.appliedFix.text}</p>
+          </div>
+        )}
         <div className={`qa-grid ${r.english ? 'qa-three' : ''}`}>
           <div className="qa-col">
             <span className="qa-label">Answer in {r.languageName}</span>
@@ -77,6 +90,16 @@ export default function ResultDetail() {
                 )}
               </div>
               <p className="judge-reason">{r.judge.reason}</p>
+              {r.judge.fix && (
+                <div className="fix-ai sfix-fix">
+                  <div className="fix-ai-head">
+                    <Sparkles size={16} />
+                    <b>AI judge&apos;s fix</b>
+                    <span className="muted small">saved, and given to the model the next time this question is asked</span>
+                  </div>
+                  <p className="fix-ai-fix sfix-text">{r.judge.fix}</p>
+                </div>
+              )}
               <p className="muted small judge-reason-note">
                 The judge&apos;s own summary. The verdict follows the critical criteria below; good practice is shown but
                 never fails an answer on its own.
