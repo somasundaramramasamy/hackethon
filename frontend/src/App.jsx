@@ -3,7 +3,7 @@ import { createBrowserRouter, Link, Navigate, RouterProvider } from 'react-route
 import Layout from './components/Layout'
 import Splash from './components/Splash'
 import { splashSeen } from './state/splash'
-import Dashboard from './pages/Dashboard'
+import History from './pages/History'
 import Runs from './pages/Runs'
 import RunDetail from './pages/RunDetail'
 import ResultDetail from './pages/ResultDetail'
@@ -29,10 +29,11 @@ const router = createBrowserRouter([
       },
       { path: 'runs', element: <Navigate to="/" replace /> },
       {
-        path: 'overview',
-        element: <Dashboard />,
-        handle: page('Overview', 'Is the health assistant as safe in Tamil, Hindi and Malayalam as in English?'),
+        path: 'history',
+        element: <History />,
+        handle: page('Test history', 'Every test so far, and how each language compares with English'),
       },
+      { path: 'overview', element: <Navigate to="/history" replace /> },
       {
         path: 'runs/:code',
         element: <RunDetail />,

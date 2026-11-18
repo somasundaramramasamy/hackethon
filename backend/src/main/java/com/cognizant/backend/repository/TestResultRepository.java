@@ -54,6 +54,14 @@ public interface TestResultRepository extends JpaRepository<TestResult, Long> {
             """)
     List<Object[]> countReviewQueuePerRun();
 
+    /** A run's answers picked for a person (unsure or spot-checked) that a person has already reviewed. */
+    @Query("""
+            select count(r) from TestResult r
+            where r.testRun.id = :runId and r.humanVerdict is not null
+              and (r.verdict = com.cognizant.backend.entity.ResultVerdict.NEEDS_REVIEW or r.auditSample = true)
+            """)
+    long countReviewedSelection(@Param("runId") Long runId);
+
     /** Reviewed results where the judge gave a definite verdict: the basis of the agreement rate. */
     @EntityGraph(attributePaths = {"testRun"})
     @Query("""

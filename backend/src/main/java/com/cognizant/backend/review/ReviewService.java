@@ -58,7 +58,8 @@ public class ReviewService {
                         waiting.getOrDefault(r.getId(), 0L)))
                 .toList();
         if (run == null) {
-            return new ReviewViews.QueuePage(null, filter == null ? null : filter.name(), options, List.of(), List.of());
+            return new ReviewViews.QueuePage(null, filter == null ? null : filter.name(), options, List.of(), List.of(),
+                    0, 0, 0);
         }
         List<TestResult> queued = results.findReviewQueue(run.getId()).stream()
                 .sorted(Comparator.comparing((TestResult r) -> r.getVerdict() == ResultVerdict.NEEDS_REVIEW ? 0 : 1)
@@ -78,8 +79,9 @@ public class ReviewService {
                         r.getCheckDetail(), r.getVerdict() == ResultVerdict.NEEDS_REVIEW ? "needs_review" : "spot_check",
                         r.getAskedAt()))
                 .toList();
+        long unsure = queued.stream().filter(r -> r.getVerdict() == ResultVerdict.NEEDS_REVIEW).count();
         return new ReviewViews.QueuePage(run.getCode(), filter == null ? null : filter.name(), options, languages,
-                items);
+                items, results.countReviewedSelection(run.getId()), unsure, queued.size() - unsure);
     }
 
     /** How many answers of the default run wait for a person: the number on the navigation badge. */

@@ -1,23 +1,25 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, NavLink, Outlet, useLocation, useMatches, useNavigate } from 'react-router-dom'
-import { House, CirclePlay, Layers, ClipboardCheck, Wrench, HeartPulse, Menu, X, ChevronRight, ChevronDown, LogOut, UserPen } from 'lucide-react'
+import { History, CirclePlay, Layers, ClipboardCheck, Wrench, HeartPulse, Menu, X, ChevronRight, ChevronDown, LogOut, UserPen } from 'lucide-react'
 import Logo from './Logo'
-import { getReviewQueueCount, getSettings } from '../api/client'
+import { getPrompts, getReviewQueueCount, getSettings } from '../api/client'
+import { waitingFixes } from '../utils/fixes'
 import { SettingsContext } from '../state/settings'
 import IdentityDialog from './IdentityDialog'
 import { askForIdentity, checkOut, roleLabel, useIdentity } from '../state/identity'
 
 const nav = [
   { to: '/', label: 'Tests', icon: CirclePlay, end: true, also: '/runs' },
+  { to: '/history', label: 'Test history', icon: History },
   { to: '/reviews', label: 'Review Queue', icon: ClipboardCheck, badge: true },
-  { to: '/overview', label: 'Overview', icon: House },
-  { to: '/fixes', label: 'Fixes', icon: Wrench },
+  { to: '/fixes', label: 'Fixes', icon: Wrench, fixBadge: true },
   { to: '/scenarios', label: 'Scenarios', icon: Layers },
 ]
 
 export default function Layout() {
   const [settings, setSettings] = useState(null)
   const [reviewCount, setReviewCount] = useState(0)
+  const [fixCount, setFixCount] = useState(0)
   const [open, setOpen] = useState(false)
   const location = useLocation()
   const [lastPath, setLastPath] = useState(location.pathname)
@@ -36,6 +38,9 @@ export default function Layout() {
     getReviewQueueCount()
       .then(setReviewCount)
       .catch(() => setReviewCount(0))
+    getPrompts()
+      .then((ps) => setFixCount(waitingFixes(ps).length))
+      .catch(() => setFixCount(0))
   }, [location.pathname])
 
   // Close the mobile drawer whenever the route changes.
@@ -60,7 +65,7 @@ export default function Layout() {
           </div>
 
           <nav className="nav">
-            {nav.map(({ to, label, icon: Icon, end, badge, also }) => (
+            {nav.map(({ to, label, icon: Icon, end, badge, fixBadge, also }) => (
               <NavLink
                 key={to}
                 to={to}
@@ -72,6 +77,11 @@ export default function Layout() {
                 <Icon size={20} strokeWidth={1.8} />
                 <span>{label}</span>
                 {badge && reviewCount > 0 && <span className="nav-badge">{reviewCount}</span>}
+                {fixBadge && fixCount > 0 && (
+                  <span className="nav-badge" title="Fixes waiting for a decision">
+                    {fixCount}
+                  </span>
+                )}
               </NavLink>
             ))}
           </nav>

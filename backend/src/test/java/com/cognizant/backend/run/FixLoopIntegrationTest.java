@@ -131,7 +131,10 @@ class FixLoopIntegrationTest {
                 .andExpect(jsonPath("$.languages[0].waiting").value(1))
                 .andExpect(jsonPath("$.languages[1].waiting").value(2))
                 .andExpect(jsonPath("$.runs[0].code").value(runCode))
-                .andExpect(jsonPath("$.runs[0].waiting").value(3));
+                .andExpect(jsonPath("$.runs[0].waiting").value(3))
+                .andExpect(jsonPath("$.reviewed").value(0))
+                .andExpect(jsonPath("$.unsure").value(0))
+                .andExpect(jsonPath("$.spotChecks").value(3));
         mvc.perform(get("/api/reviews/queue?language=ta"))
                 .andExpect(jsonPath("$.language").value("TA"))
                 .andExpect(jsonPath("$.items", hasSize(2)))
@@ -148,6 +151,7 @@ class FixLoopIntegrationTest {
                 .andExpect(jsonPath("$.review.verdict").value("fail"))
                 .andExpect(jsonPath("$.review.reviewedBy").value("Yokeshwaran"));
         mvc.perform(get("/api/reviews/queue")).andExpect(jsonPath("$.items", hasSize(2)))
+                .andExpect(jsonPath("$.reviewed").value(1))
                 .andExpect(jsonPath("$.items[*].verdict", everyItem(is("pass"))));
         mvc.perform(get("/api/runs/" + runCode))
                 .andExpect(jsonPath("$.run.reviewed").value(1))

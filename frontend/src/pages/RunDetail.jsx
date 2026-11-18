@@ -15,6 +15,14 @@ const LANGS = ['EN', 'TA', 'HI', 'ML']
 export default function RunDetail() {
   const { code } = useParams()
   const location = useLocation()
+  return <RunView code={code} showSteps={location.state?.fromNewTest} />
+}
+
+/**
+ * One test's results: on its own page, and under the new-test form on Tests (embedded, where that
+ * form shows the progress line).
+ */
+export function RunView({ code, showSteps = false, embedded = false }) {
   const { data, error, loading, reload } = useLoad(() => getRun(code), [code], {
     shouldPoll: (d) => d?.run.status === 'running',
   })
@@ -26,7 +34,15 @@ export default function RunDetail() {
   return (
     <div className="page">
       <Card className="run-header-card">
-        {(location.state?.fromNewTest || data.run.status === 'running') && data.run.type === 'baseline' && (
+        {embedded && (
+          <div className="run-embedded-head">
+            <span className="muted small">Result</span>
+            <Link className="link small" to={`/runs/${run.code}`}>
+              Open on its own page <ArrowRight size={14} />
+            </Link>
+          </div>
+        )}
+        {!embedded && (showSteps || data.run.status === 'running') && data.run.type === 'baseline' && (
           <Stepper current={data.run.status === 'running' ? 3 : 4} />
         )}
         <div className="run-summary">
