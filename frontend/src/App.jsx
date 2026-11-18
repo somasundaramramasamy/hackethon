@@ -104,10 +104,18 @@ function NotFound() {
 
 export default function App() {
   const [splash, setSplash] = useState(() => !splashSeen())
-  if (splash) {
+  const [replays, setReplays] = useState(0)
+  // ?intro=loop shows only the load-up screen, over and over, e.g. for recording it.
+  const loop = new URLSearchParams(window.location.search).get('intro') === 'loop'
+  if (splash || loop) {
     return (
       <Splash
+        key={replays}
         onDone={() => {
+          if (loop) {
+            setReplays((n) => n + 1)
+            return
+          }
           document.body.style.background = ''
           setSplash(false)
         }}
