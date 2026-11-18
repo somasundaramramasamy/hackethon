@@ -7,12 +7,18 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+Tamil:wght@400;500&family=Noto+Sans+Devanagari:wght@400;500&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+Tamil:wght@400;500&family=Noto+Sans+Devanagari:wght@400;500&family=Noto+Sans+Malayalam:wght@400;500&display=swap"
       rel="stylesheet"
     />
     <title>Kavasam – AI Safety Testing</title>
   </head>
   <body>
+    <!-- Dark until the load-up screen paints, so it does not flash white first. -->
+    <script>
+      try {
+        if (sessionStorage.getItem('kavasam.splash') !== 'shown' || location.search.includes('intro')) document.body.style.background = '#0c1640'
+      } catch (e) {}
+    </script>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>

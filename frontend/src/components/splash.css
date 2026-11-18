@@ -1,0 +1,387 @@
+/* Load-up screen. Times are seconds from the start; the whole sequence is about 8 s. */
+
+.splash {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 16px;
+  overflow: hidden;
+  color: #fff;
+  background: radial-gradient(ellipse at 50% 40%, #1a2766 0%, #0c1640 55%, #070d29 100%);
+  cursor: default;
+  user-select: none;
+}
+.splash > * {
+  animation-name: splash-in;
+  animation-duration: 0.6s;
+  animation-fill-mode: both;
+}
+.splash.leaving {
+  animation: splash-out 0.6s ease-in forwards;
+}
+
+.splash-glow {
+  position: absolute;
+  width: 520px;
+  height: 520px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(91, 140, 255, 0.35) 0%, rgba(124, 92, 246, 0.12) 45%, transparent 70%);
+  filter: blur(10px);
+  opacity: 0;
+  animation: glow 4s ease-in-out 1.8s infinite;
+}
+
+.splash-stage {
+  position: relative;
+  width: 340px;
+  height: 340px;
+  max-width: 86vw;
+  max-height: 86vw;
+  display: grid;
+  place-items: center;
+}
+
+.splash-logo {
+  width: 42%;
+  height: 42%;
+  overflow: visible;
+  filter: drop-shadow(0 10px 30px rgba(59, 108, 246, 0.45));
+}
+.splash-shield-line {
+  fill: none;
+  stroke: #9fbcff;
+  stroke-width: 1.4;
+  stroke-linejoin: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: draw 1.6s cubic-bezier(0.65, 0, 0.35, 1) 0.3s forwards, fade-to 0.8s ease 2.2s forwards;
+}
+.splash-shield-fill {
+  opacity: 0;
+  animation: fill-in 0.9s ease-out 1.5s forwards;
+}
+.splash-bubble {
+  fill: #fff;
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: pop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 2.4s forwards;
+}
+.splash-check {
+  fill: none;
+  stroke: #3b6cf6;
+  stroke-width: 3.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: draw 0.6s ease-out 3s forwards;
+}
+
+/* The four languages on a slowly turning ring */
+.splash-orbit {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 1px dashed rgba(159, 188, 255, 0);
+  animation: ring-in 1s ease 3.4s forwards, spin 28s linear 3.4s infinite;
+}
+.splash-glyph {
+  --x: 0px;
+  --y: 0px;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 56px;
+  height: 56px;
+  margin: -28px 0 0 -28px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(4px);
+  font-size: 26px;
+  font-weight: 600;
+  opacity: 0;
+  transform: translate(calc(var(--x) * 2.6), calc(var(--y) * 2.6)) scale(0.4);
+  animation: glyph-in 0.9s cubic-bezier(0.22, 1, 0.36, 1) forwards, verified 0.5s ease forwards;
+}
+.splash-glyph-char {
+  display: block;
+  line-height: 1;
+  animation: counter-spin 28s linear 3.4s infinite;
+}
+.splash-glyph.g0 {
+  --x: 0px;
+  --y: -150px;
+  animation-delay: 3.6s, 5.6s;
+}
+.splash-glyph.g1 {
+  --x: 150px;
+  --y: 0px;
+  animation-delay: 3.85s, 6s;
+}
+.splash-glyph.g2 {
+  --x: 0px;
+  --y: 150px;
+  animation-delay: 4.1s, 6.4s;
+}
+.splash-glyph.g3 {
+  --x: -150px;
+  --y: 0px;
+  animation-delay: 4.35s, 6.8s;
+}
+.splash-tick {
+  position: absolute;
+  right: -4px;
+  bottom: -4px;
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #1faa59;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  opacity: 0;
+  transform: scale(0);
+  animation: tick 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+.splash-tick > span {
+  display: block;
+  line-height: 1;
+  animation: counter-spin 28s linear 3.4s infinite;
+}
+.splash-glyph.g0 .splash-tick {
+  animation-delay: 5.7s;
+}
+.splash-glyph.g1 .splash-tick {
+  animation-delay: 6.1s;
+}
+.splash-glyph.g2 .splash-tick {
+  animation-delay: 6.5s;
+}
+.splash-glyph.g3 .splash-tick {
+  animation-delay: 6.9s;
+}
+
+.splash-title {
+  position: relative;
+  margin: 8px 0 0;
+  font-size: 44px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+}
+.splash-title span {
+  display: inline-block;
+  opacity: 0;
+  transform: translateY(14px);
+  animation: rise 0.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+.splash-tagline {
+  position: relative;
+  margin: 0;
+  font-size: 16px;
+  color: #c3cbef;
+  text-align: center;
+  opacity: 0;
+  animation: fade-up 0.7s ease 5.4s forwards;
+}
+
+.splash-footer {
+  position: absolute;
+  bottom: 36px;
+  left: 50%;
+  width: min(320px, 80vw);
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  text-align: center;
+}
+.splash-bar {
+  width: 100%;
+  height: 3px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.12);
+  overflow: hidden;
+}
+.splash-bar span {
+  display: block;
+  height: 100%;
+  width: 0;
+  border-radius: 3px;
+  background: linear-gradient(90deg, #6aa1ff, #7c5cf6);
+  animation: bar 7.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+.splash-status {
+  margin: 0;
+  font-size: 13px;
+  color: #c3cbef;
+}
+.splash-skip {
+  margin: 0;
+  font-size: 12px;
+  color: rgba(195, 203, 239, 0.6);
+}
+.splash-retry {
+  display: flex;
+  gap: 10px;
+}
+.splash-retry button {
+  padding: 8px 16px;
+  border: 0;
+  border-radius: 8px;
+  background: #3b6cf6;
+  color: #fff;
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+}
+.splash-retry button.ghost {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+@keyframes splash-in {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes splash-out {
+  to {
+    opacity: 0;
+    transform: scale(1.04);
+  }
+}
+@keyframes draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes fade-to {
+  to {
+    stroke-opacity: 0;
+  }
+}
+@keyframes fill-in {
+  to {
+    opacity: 1;
+  }
+}
+@keyframes pop {
+  from {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+@keyframes glow {
+  0%,
+  100% {
+    opacity: 0.55;
+    transform: scale(0.92);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.05);
+  }
+}
+@keyframes ring-in {
+  to {
+    border-color: rgba(159, 188, 255, 0.22);
+  }
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes counter-spin {
+  to {
+    transform: rotate(-360deg);
+  }
+}
+@keyframes glyph-in {
+  to {
+    opacity: 1;
+    transform: translate(var(--x), var(--y)) scale(1);
+  }
+}
+@keyframes verified {
+  to {
+    background: rgba(31, 170, 89, 0.22);
+    border-color: rgba(70, 210, 130, 0.7);
+    box-shadow: 0 0 24px rgba(31, 170, 89, 0.45);
+  }
+}
+@keyframes tick {
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+@keyframes rise {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes bar {
+  to {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .splash-stage {
+    width: 280px;
+    height: 280px;
+  }
+  .splash-glyph.g0 {
+    --y: -122px;
+  }
+  .splash-glyph.g1 {
+    --x: 122px;
+  }
+  .splash-glyph.g2 {
+    --y: 122px;
+  }
+  .splash-glyph.g3 {
+    --x: -122px;
+  }
+  .splash-title {
+    font-size: 36px;
+  }
+}
+
+/* People who asked for less motion get the finished picture and a short fade. */
+.splash.reduced *,
+.splash.reduced {
+  animation-duration: 0.01s !important;
+  animation-delay: 0s !important;
+  animation-iteration-count: 1 !important;
+}
+.splash.reduced .splash-bar span {
+  width: 100%;
+}

@@ -87,6 +87,10 @@ button {
   font-family: 'Noto Sans Devanagari', Inter, sans-serif;
 }
 
+[lang='ml'] {
+  font-family: 'Noto Sans Malayalam', Inter, sans-serif;
+}
+
 .sr-only {
   position: absolute;
   width: 1px;

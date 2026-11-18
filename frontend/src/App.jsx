@@ -1,5 +1,8 @@
+import { useState } from 'react'
 import { createBrowserRouter, Link, RouterProvider } from 'react-router-dom'
 import Layout from './components/Layout'
+import Splash from './components/Splash'
+import { splashSeen } from './state/splash'
 import Dashboard from './pages/Dashboard'
 import Runs from './pages/Runs'
 import RunDetail from './pages/RunDetail'
@@ -99,5 +102,16 @@ function NotFound() {
 }
 
 export default function App() {
+  const [splash, setSplash] = useState(() => !splashSeen())
+  if (splash) {
+    return (
+      <Splash
+        onDone={() => {
+          document.body.style.background = ''
+          setSplash(false)
+        }}
+      />
+    )
+  }
   return <RouterProvider router={router} />
 }
