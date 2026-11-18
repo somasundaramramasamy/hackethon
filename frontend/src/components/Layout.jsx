@@ -1,11 +1,11 @@
-import { useEffect, useState } from 'react'
-import { Link, NavLink, Outlet, useLocation, useMatches } from 'react-router-dom'
-import { House, CirclePlay, Layers, ClipboardCheck, Wrench, HeartPulse, Menu, X, ChevronRight, UserPen } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import { Link, NavLink, Outlet, useLocation, useMatches, useNavigate } from 'react-router-dom'
+import { House, CirclePlay, Layers, ClipboardCheck, Wrench, HeartPulse, Menu, X, ChevronRight, ChevronDown, LogOut, UserPen } from 'lucide-react'
 import Logo from './Logo'
 import { getReviewQueueCount, getSettings } from '../api/client'
 import { SettingsContext } from '../state/settings'
 import IdentityDialog from './IdentityDialog'
-import { askForIdentity, roleLabel, useIdentity } from '../state/identity'
+import { askForIdentity, checkOut, roleLabel, useIdentity } from '../state/identity'
 
 const nav = [
   { to: '/', label: 'Tests', icon: CirclePlay, end: true, also: '/runs' },
@@ -131,6 +131,22 @@ export default function Layout() {
 /** Who is signing decisions in this browser; click to change. */
 function CurrentUser() {
   const { identity, confirmed } = useIdentity()
+  const navigate = useNavigate()
+  const [open, setOpen] = useState(false)
+  const ref = useRef(null)
+
+  useEffect(() => {
+    if (!open) return undefined
+    const close = (e) => !ref.current?.contains(e.target) && setOpen(false)
+    const escape = (e) => e.key === 'Escape' && setOpen(false)
+    document.addEventListener('mousedown', close)
+    document.addEventListener('keydown', escape)
+    return () => {
+      document.removeEventListener('mousedown', close)
+      document.removeEventListener('keydown', escape)
+    }
+  }, [open])
+
   if (!confirmed) {
     return (
       <button className="btn-secondary" onClick={() => askForIdentity()}>
@@ -139,14 +155,47 @@ function CurrentUser() {
     )
   }
   return (
-    <button className="user" onClick={() => askForIdentity()} title="Change who signs reviews, approvals and tests">
-      <span className="avatar">{initials(identity.name)}</span>
-      <span className="user-text">
-        <span className="user-name">{identity.name}</span>
-        <span className="user-role">{roleLabel(identity)}</span>
-      </span>
-      <UserPen size={16} />
-    </button>
+    <div className="user-menu" ref={ref}>
+      <button
+        className="user"
+        onClick={() => setOpen((o) => !o)}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        title="Signed in for this tab"
+      >
+        <span className="avatar">{initials(identity.name)}</span>
+        <span className="user-text">
+          <span className="user-name">{identity.name}</span>
+          <span className="user-role">{roleLabel(identity)}</span>
+        </span>
+        <ChevronDown size={16} />
+      </button>
+      {open && (
+        <div className="user-menu-list" role="menu">
+          <button
+            role="menuitem"
+            onClick={() => {
+              setOpen(false)
+              askForIdentity()
+            }}
+          >
+            <UserPen size={16} /> Change name or role
+          </button>
+          <button
+            role="menuitem"
+            className="danger"
+            onClick={() => {
+              setOpen(false)
+              checkOut()
+              navigate('/')
+            }}
+          >
+            <LogOut size={16} /> Check out
+          </button>
+          <p className="user-menu-note">You are checked out automatically when you close this tab.</p>
+        </div>
+      )}
+    </div>
   )
 }
 

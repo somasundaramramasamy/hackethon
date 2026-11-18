@@ -2,7 +2,8 @@ import { useSyncExternalStore } from 'react'
 
 // Who is using Kavasam: a name and a role that sign every review, approval and test. It identifies
 // people; it does not authenticate them. A deployment would connect the organization's own sign-in.
-// The identity is remembered in this browser, and confirmed once per visit.
+// The identity lasts as long as this tab: it survives a refresh and is forgotten when the tab or the
+// browser closes, so the next person starts with an empty window. "Check out" forgets it at once.
 
 export const ROLES = {
   reviewer: {
@@ -34,9 +35,15 @@ export const REVIEW_LANGUAGES = [
   ['EN', 'English'],
 ]
 
-const KEY = 'kavasam.identity'
-const OLD_KEY = 'kavasam.reviewer'
+const KEY = 'kavasam.identity' // sessionStorage: the person using this tab
 const VISIT_KEY = 'kavasam.visit' // sessionStorage: 'confirmed' or 'viewer'
+// Earlier versions kept the name in localStorage, where it outlived the visit; remove it.
+const LEGACY_KEYS = ['kavasam.identity', 'kavasam.reviewer']
+try {
+  LEGACY_KEYS.forEach((k) => localStorage.removeItem(k))
+} catch {
+  // Storage blocked: nothing was kept there either.
+}
 const EVENT = 'kavasam-identity'
 
 let snapshot = null
@@ -47,10 +54,8 @@ const SERVER_SNAPSHOT = { stored: null, visit: '' }
 
 function readStored() {
   try {
-    const raw = localStorage.getItem(KEY)
-    if (raw) return JSON.parse(raw)
-    const oldName = localStorage.getItem(OLD_KEY)
-    return oldName ? { name: oldName, role: null, language: null } : null
+    const raw = sessionStorage.getItem(KEY)
+    return raw ? JSON.parse(raw) : null
   } catch {
     return null
   }
@@ -110,13 +115,24 @@ export function roleLabel(identity) {
 
 export function saveIdentity(identity) {
   try {
-    localStorage.setItem(KEY, JSON.stringify(identity))
-    localStorage.removeItem(OLD_KEY)
+    sessionStorage.setItem(KEY, JSON.stringify(identity))
     sessionStorage.setItem(VISIT_KEY, 'confirmed')
   } catch {
     // Storage blocked (private window): the identity lasts until the page reloads.
     memory = { stored: identity, visit: 'confirmed' }
   }
+  notify()
+}
+
+/** Forgets who is using this tab, so the next person starts with an empty window. */
+export function checkOut() {
+  try {
+    sessionStorage.removeItem(KEY)
+    sessionStorage.removeItem(VISIT_KEY)
+  } catch {
+    // Storage blocked: the in-memory identity below is all there is.
+  }
+  memory = null
   notify()
 }
 
@@ -128,7 +144,6 @@ export function continueAsViewer() {
   }
   notify()
 }
-
 
 /**
  * { identity, signature, confirmed, viewer }: identity is the remembered name and role, confirmed

@@ -108,8 +108,10 @@ lost in general failure.
   fifth of the answers in the latest run (38 of 180), filtered to their own language.
 - **People stay in control.** Everyone says who they are and in what role when they open the app
   (native-speaker reviewer, clinician, product or safety lead, engineer), and every review, approval,
-  rejection and adoption is signed that way, e.g. "Yokeshwaran (Tamil reviewer)". Kavasam records who
-  decided but does not check passwords; a deployment would use the organization's own sign-in. The
+  rejection and adoption is signed that way, e.g. "Yokeshwaran (Tamil reviewer)". People check out when
+  they hand over, and closing the tab checks them out, so the next person never signs under the last
+  one's name. Kavasam records who decided but does not check passwords; a deployment would use the
+  organization's own sign-in. The
   fix agent reads the reason for any rejected proposal before it tries again.
   Unreviewed results are labelled as such. A fix changes nothing until it is approved, retested and
   adopted, and any earlier version can be adopted again to roll back.
