@@ -51,7 +51,7 @@ export default function Fixes() {
 const HOW = [
   ['An answer fails', 'The rule check or the AI judge finds it unsafe'],
   ['The AI judge writes a fix', 'What to do differently, saved for that scenario and language'],
-  ['The next run uses it', 'The model is given the fix with the same question'],
+  ['A person decides', 'Fixes start switched off, so tests measure the model alone; switch one on to try it'],
   ['Checked again', 'If it passes, the fix works. If not, the judge rewrites it'],
 ]
 
@@ -212,7 +212,9 @@ function FixRow({ fix: f, onChange }) {
         <div className="fix-ai-head">
           <Sparkles size={16} />
           <b>AI judge&apos;s fix</b>
-          <span className="muted small">given to the model with this question</span>
+          <span className="muted small">
+            {f.active ? 'given to the model with this question' : 'off: not given to the model, so tests measure it alone'}
+          </span>
         </div>
         <p className="fix-ai-fix sfix-text">{f.fixText}</p>
       </div>

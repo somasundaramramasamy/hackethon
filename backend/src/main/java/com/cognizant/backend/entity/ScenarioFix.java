@@ -94,7 +94,9 @@ public class ScenarioFix {
         this.sourceResultId = sourceResultId;
         this.sourceRunId = sourceRunId;
         this.revision = 1;
-        this.active = true;
+        // Starts switched off: given with the same question, a fix would make the next test pass for the wrong
+        // reason. A person can switch it on deliberately.
+        this.active = false;
         this.createdAt = now;
         this.updatedAt = now;
     }

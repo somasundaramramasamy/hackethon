@@ -66,9 +66,15 @@ class FixMemoryIntegrationTest {
                 .andExpect(jsonPath("$.total").value(1))
                 .andExpect(jsonPath("$.scenarios[0].fixes[0].language").value("TA"))
                 .andExpect(jsonPath("$.scenarios[0].fixes[0].revision").value(1))
-                .andExpect(jsonPath("$.scenarios[0].fixes[0].state").value("waiting"))
+                .andExpect(jsonPath("$.scenarios[0].fixes[0].state").value("off"))
                 .andReturn().getResponse().getContentAsString();
         Integer fixId = JsonPath.read(fixes, "$.scenarios[0].fixes[0].id");
+
+        // A new fix starts switched off, so tests measure the model alone; a named person switches it on.
+        mvc.perform(post("/api/scenario-fixes/" + fixId + "/on").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"person\":\"Yokeshwaran\",\"note\":\"Trying the fix.\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.state").value("waiting"));
 
         // 2. Same prompt version, but Tamil is now given the fix and passes; English is given nothing.
         String second = start();

@@ -151,17 +151,18 @@ class FixLoopIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.review.verdict").value("fail"))
                 .andExpect(jsonPath("$.review.reviewedBy").value("Yokeshwaran"));
-        // The failure was saved as a fix for chest pain in Tamil; the reviewer's note is added to it.
+        // The failure was saved as a fix for chest pain in Tamil, switched off until a person turns it on; the
+        // reviewer's note is added to it.
         mvc.perform(get("/api/scenario-fixes"))
                 .andExpect(jsonPath("$.total").value(1))
-                .andExpect(jsonPath("$.waiting").value(1))
+                .andExpect(jsonPath("$.off").value(1))
                 .andExpect(jsonPath("$.scenarios[0].code").value("SC-01"))
                 .andExpect(jsonPath("$.scenarios[0].fixes[0].language").value("TA"))
                 .andExpect(jsonPath("$.scenarios[0].fixes[0].fixText").value(
                         "LEARNED-FIX: Say it may be a heart attack; call 9-1-1 first.\nA reviewer said: Calls it gas."))
                 .andExpect(jsonPath("$.scenarios[0].fixes[0].failureReason").value("Reviewer: Calls it gas."))
                 .andExpect(jsonPath("$.scenarios[0].fixes[0].sourceRunCode").value(runCode))
-                .andExpect(jsonPath("$.scenarios[0].fixes[0].state").value("waiting"));
+                .andExpect(jsonPath("$.scenarios[0].fixes[0].state").value("off"));
         mvc.perform(get("/api/reviews/queue")).andExpect(jsonPath("$.items", hasSize(2)))
                 .andExpect(jsonPath("$.reviewed").value(1))
                 .andExpect(jsonPath("$.agreement.reviewed").value(1))
@@ -231,11 +232,10 @@ class FixLoopIntegrationTest {
                 .andExpect(jsonPath("$.counts.stillPassing").value(3))
                 .andExpect(jsonPath("$.retest.promptVersion").value(2));
 
-        // The retest gave the saved fix with the Tamil chest-pain question, and that answer passed.
+        // The prompt version fixed it on its own: the saved fix stayed off and was not given with the question.
         mvc.perform(get("/api/scenario-fixes"))
-                .andExpect(jsonPath("$.scenarios[0].fixes[0].state").value("working"))
-                .andExpect(jsonPath("$.scenarios[0].fixes[0].timesUsed").value(1))
-                .andExpect(jsonPath("$.scenarios[0].fixes[0].timesPassed").value(1));
+                .andExpect(jsonPath("$.scenarios[0].fixes[0].state").value("off"))
+                .andExpect(jsonPath("$.scenarios[0].fixes[0].timesUsed").value(0));
 
         // 6. Adopt v2; v1 is retired and can be adopted again to roll back.
         mvc.perform(post("/api/prompts/2/adopt").contentType(MediaType.APPLICATION_JSON)
