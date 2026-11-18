@@ -323,8 +323,8 @@ function PromptVersions({ prompts }) {
   return (
     <Card title="Prompt versions" icon={History}>
       <p className="muted small">
-        The general instructions every question is asked with. Saved fixes are added to them, only for the question
-        they were learned from.
+        The general instructions every question is asked with. A saved fix is added to them only when a person
+        switches it on, and only for the question it was learned from.
       </p>
       <ol className="fix-history">
         {sorted.map((p) => (
