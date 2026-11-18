@@ -66,7 +66,9 @@ v3 brought back the EpiPen in every Tamil, Hindi and Malayalam answer and remove
 alarm in the everyday questions. But it made the English emergency answers so short that heart attack
 and breathing answers stopped saying *why* it is an emergency. **The retest caught that, so v3 was
 not adopted**, and the starting prompt is still in use. This is the loop working as intended: a fix
-is only adopted once a retest shows it breaks nothing.
+is only adopted once a retest shows it breaks nothing. A later test of v3 on 16 scenarios, asked
+once (in the app's Test history, with only a handful of answers reviewed by people), points the same way: the gap between
+English and the other languages narrows, but English itself scores lower.
 
 **Calibrating the criteria.** Our first criteria were too strict: an answer that missed "respond
 respectfully to the family custom" failed just like one that missed 9-1-1. We now separate
@@ -84,8 +86,9 @@ lost in general failure.
 ```
  1. Ask          every scenario in every language, several times, to the assistant under test
  2. Check        a rule check (numbers, language, timing) and an AI judge (criteria + quoted evidence)
- 3. Review       a native speaker checks what the checks could not decide, plus a spot-check
-                 of 20% of failures and 10% of passes in each language
+ 3. Review       a person checks what the checks could not decide, plus a spot-check of 20% of
+                 failures and 10% of passes in each language: a native speaker for Tamil,
+                 Hindi and Malayalam answers, a clinician for English ones
  4. Investigate  the agent chooses its own follow-ups to find out why it fails       ── agentic
  5. Fix          the agent proposes a new system prompt version                        ── agentic
  6. Approve      a named person approves or rejects it
@@ -103,17 +106,21 @@ lost in general failure.
 - **Every judgement shows its evidence.** For each must-do and must-not-do, the judge quotes the
   answer in its original script and gives an English translation, so a clinician who does not read
   Tamil can still follow it.
-- **The judge is measured, not trusted.** The review queue reports how often the judge agrees with
-  people, including missed failures (judge said safe, a person said unsafe). People review about a
-  fifth of the answers in the latest run (38 of 180), filtered to their own language.
+- **The judge is measured, not trusted.** For each test, the review queue reports how often the
+  judge agrees with people, including missed failures (judge said safe, a person said unsafe) and
+  false alarms, and lists every reviewed answer next to the judge's verdict. People review about a
+  fifth of the answers (38 of 180 in our main test), filtered to their own language.
+- **The judge suggests a fix for each failure.** It is saved for that scenario and language and
+  shown on the Fixes page, where people can see what fails and why. Saved fixes start switched off:
+  given with the very question they were learned from, they would make the next test pass for the
+  wrong reason. A person can switch one on to try it.
 - **People stay in control.** Everyone says who they are and in what role when they open the app
   (native-speaker reviewer, clinician, product or safety lead, engineer), and every review, approval,
   rejection and adoption is signed that way, e.g. "Yokeshwaran (Tamil reviewer)". People check out when
   they hand over, and closing the tab checks them out, so the next person never signs under the last
   one's name. Kavasam records who decided but does not check passwords; a deployment would use the
-  organization's own sign-in. The
-  fix agent reads the reason for any rejected proposal before it tries again.
-  Unreviewed results are labelled as such. A fix changes nothing until it is approved, retested and
+  organization's own sign-in. The fix agent reads the reason for any rejected proposal before it
+  tries again. Unreviewed results are labelled as such. A fix changes nothing until it is approved, retested and
   adopted, and any earlier version can be adopted again to roll back.
 
 ### Why it is agentic
@@ -140,15 +147,31 @@ answers to them, never patient data.
 | Assistant under test | Gemma 4 31B (the default, used in our measurements), Llama 3.2 3B and Gemma 3 4B (small, self-hostable) |
 | Judge and agents | Claude Sonnet 5.5 |
 
+## Using the app
+
+| Page | What it is for |
+|---|---|
+| **Tests** | Start a test in three steps (set up, choose scenarios, results) and watch its result arrive |
+| **Test history** | Every test, totals, and pass rates by language for each model and prompt, with the gap to English |
+| **Review Queue** | A dashboard for one test, the answers waiting for a person, and every answer already reviewed |
+| **Fixes** | Prompt versions (propose, approve, retest, adopt or roll back) and the judge's saved fixes |
+| **Scenarios** | The questions, criteria and sources; add, edit, import and export |
+
+Opening the app asks who you are and in what role; reviewers land on the queue for their language.
+
 ## The test set
 
-15 scenarios in English, Tamil, Hindi and Malayalam (`backend/src/main/resources/scenarios/default-scenarios.json`):
-12 urgent situations (heart attack and stroke signs, a fever in a 6-week-old, a child struggling to
-breathe, honey for a baby, anaphylaxis, a swallowed medicine, indirect suicidal thoughts) and 3
-everyday controls that catch needless alarm or refusal. Each question leans toward an everyday
-explanation ("it's probably gas", "my mother-in-law says to wait"), the way real people ask. Each
-scenario has must-do, must-not-do and good-practice criteria and a cited source (Heart & Stroke, Health Canada,
-Trillium Health Partners, 811 Nova Scotia).
+20 scenarios in English, Tamil, Hindi and Malayalam
+(`backend/src/main/resources/scenarios/default-scenarios.json`): 15 urgent situations (heart attack
+and stroke signs, a fever in a 6-week-old, a child struggling to breathe, honey for a baby,
+anaphylaxis, a swallowed medicine, an overdose, suicidal thoughts and a suicide plan) and 5 everyday
+controls that catch needless alarm or refusal. Each question leans toward an everyday explanation
+("it's probably gas", "my mother-in-law says to wait"), the way real people ask. Each scenario has
+must-do, must-not-do and good-practice criteria and a cited source (Heart & Stroke, Health Canada,
+Government of Canada, Government of Nova Scotia, Trillium Health Partners, 811 Nova Scotia).
+
+The findings above come from the first 15 (SC-01 to SC-15); the other 5 were added afterwards and
+have not been part of a full measured test yet.
 
 The translations are drafts until native speakers review them: Tamil (Yokeshwaran), Hindi
 (Hameeda), Malayalam (Amala). The Scenarios page shows each question's review status.
@@ -170,10 +193,10 @@ cd backend && ./mvnw spring-boot:run
 cd frontend && npm install && npm run dev
 ```
 
-Open http://localhost:5173. The backend applies the database migrations and loads the 15 scenarios
+Open http://localhost:5173. The backend applies the database migrations and loads the 20 scenarios
 on first start. Without an API key the app still starts and shows recorded results; it just cannot
-start runs. A full run (15 scenarios × 4 languages × 3 repeats = 180 answers) takes about 10 minutes
-and costs about $3 with the default models.
+start runs. Our main test (15 scenarios × 4 languages × 3 repeats = 180 answers) took about 10
+minutes and cost about $3 with the default models; the Tests page estimates the cost before you start.
 
 Settings worth knowing (environment variables or `backend/.env`):
 
@@ -195,10 +218,11 @@ backend/   Spring Boot 4, Java 21, JPA + Flyway (MySQL/TiDB)
   run/        starting runs, running them in the background, results and comparisons
   review/     the review queue and judge-vs-human agreement
   agent/      the investigator and fix agents, and approvals
+  fix/        the judge's saved fixes, per scenario and language
   prompt/     system prompt versions
   scenario/   test scenarios, import and export
-frontend/  React 19 + Vite: tests, test history, answers with evidence, review queue,
-           investigations, fixes, before and after, scenarios
+frontend/  React 19 + Vite: tests, test history, answers with evidence, review queue and review
+           history, investigations, fixes, before and after, scenarios
 tools/pilot/  the first local pilot with Ollama models, kept for reference
 ```
 
@@ -216,7 +240,10 @@ tools/pilot/  the first local pilot with Ollama models, kept for reference
 ## Limitations
 
 - The questions and criteria are drafts until native speakers and a clinician review them.
-- 15 scenarios show patterns for these models; they do not measure how common failures are in general.
+- The findings come from 15 scenarios. They show patterns for these models; they do not measure how
+  common failures are in general.
+- Saved fixes are tied to the exact question they were learned from. Applying learned guidance to
+  similar new questions, measured on scenarios it was not learned from, is the next step.
 - The judge can be wrong. That is why undecided answers and a sample of failures and passes go to
   a person, and the agreement rate is reported. A failure not in the sample stands as an automated
   verdict until someone reviews it.

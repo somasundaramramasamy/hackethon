@@ -30,7 +30,7 @@ import com.cognizant.backend.repository.TestResultRepository;
 import com.cognizant.backend.repository.TestRunRepository;
 import com.cognizant.backend.repository.TestScenarioRepository;
 
-/** Scenario management API against the 15 scenarios loaded from default-scenarios.json. */
+/** Scenario management API against the 20 scenarios loaded from default-scenarios.json. */
 @SpringBootTest(properties = "spring.datasource.url=jdbc:h2:mem:kavasam-scenario-test;DB_CLOSE_DELAY=-1;MODE=MySQL")
 @AutoConfigureMockMvc
 @Transactional
@@ -52,7 +52,7 @@ class ScenarioApiTest {
     void listsStartingScenariosWithCriteriaAndSources() throws Exception {
         mvc.perform(get("/api/scenarios"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$", hasSize(15)))
+                .andExpect(jsonPath("$", hasSize(20)))
                 .andExpect(jsonPath("$[0].code").value("SC-01"))
                 .andExpect(jsonPath("$[0].kind").value("urgent"))
                 .andExpect(jsonPath("$[0].mustDo[1]").value("Tells the person to call 9-1-1 now"))
@@ -72,8 +72,8 @@ class ScenarioApiTest {
     void createsScenarioWithNextCodeAtTheEnd() throws Exception {
         mvc.perform(post("/api/scenarios").contentType(MediaType.APPLICATION_JSON).content(validBody("Severe burn")))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.code").value("SC-16"))
-                .andExpect(jsonPath("$.position").value(16))
+                .andExpect(jsonPath("$.code").value("SC-25"))
+                .andExpect(jsonPath("$.position").value(21))
                 .andExpect(jsonPath("$.active").value(true))
                 .andExpect(jsonPath("$.questions[0].language").value("EN"))
                 .andExpect(jsonPath("$.questions[2].reviewedBy").value("Hameeda"))
@@ -81,7 +81,7 @@ class ScenarioApiTest {
                 .andExpect(jsonPath("$.shouldDo[0]").value("Stays calm and kind"))
                 .andExpect(jsonPath("$.ruleSignals[0]").value("URGENT_CARE"));
 
-        mvc.perform(get("/api/scenarios")).andExpect(jsonPath("$", hasSize(16)));
+        mvc.perform(get("/api/scenarios")).andExpect(jsonPath("$", hasSize(21)));
     }
 
     @Test
@@ -121,8 +121,8 @@ class ScenarioApiTest {
 
         mvc.perform(patch("/api/scenarios/SC-02/active").contentType(MediaType.APPLICATION_JSON).content("{\"active\":false}"))
                 .andExpect(jsonPath("$.active").value(false));
-        mvc.perform(get("/api/scenarios")).andExpect(jsonPath("$", hasSize(14)));
-        mvc.perform(get("/api/scenarios?includeInactive=true")).andExpect(jsonPath("$", hasSize(15)));
+        mvc.perform(get("/api/scenarios")).andExpect(jsonPath("$", hasSize(19)));
+        mvc.perform(get("/api/scenarios?includeInactive=true")).andExpect(jsonPath("$", hasSize(20)));
 
         mvc.perform(delete("/api/scenarios/SC-02")).andExpect(status().isNoContent());
         mvc.perform(get("/api/scenarios/SC-02")).andExpect(status().isNotFound());
@@ -145,7 +145,7 @@ class ScenarioApiTest {
         String exported = mvc.perform(get("/api/scenarios/export"))
                 .andExpect(status().isOk())
                 .andExpect(header().string("Content-Disposition", containsString("kavasam-scenarios-")))
-                .andExpect(jsonPath("$", hasSize(15)))
+                .andExpect(jsonPath("$", hasSize(20)))
                 .andExpect(jsonPath("$[0].questions.TA.text").exists())
                 .andExpect(jsonPath("$[0].questions.ML.text").exists())
                 .andExpect(jsonPath("$[0].ruleSignals[0]").value("EMERGENCY_NUMBER"))
@@ -155,12 +155,12 @@ class ScenarioApiTest {
         mvc.perform(post("/api/scenarios/import").contentType(MediaType.APPLICATION_JSON).content(exported))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.created").value(0))
-                .andExpect(jsonPath("$.updated").value(15));
+                .andExpect(jsonPath("$.updated").value(20));
 
         String newOne = "[" + validBody("Imported scenario") + "]";
         mvc.perform(post("/api/scenarios/import").contentType(MediaType.APPLICATION_JSON).content(newOne))
                 .andExpect(jsonPath("$.created").value(1))
-                .andExpect(jsonPath("$.codes[0]").value("SC-16"));
+                .andExpect(jsonPath("$.codes[0]").value("SC-25"));
     }
 
     @Test
@@ -170,7 +170,7 @@ class ScenarioApiTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.title").value("Invalid Scenario"))
                 .andExpect(jsonPath("$.errors['[1].category']").exists());
-        mvc.perform(get("/api/scenarios")).andExpect(jsonPath("$", hasSize(15)));
+        mvc.perform(get("/api/scenarios")).andExpect(jsonPath("$", hasSize(20)));
     }
 
     private static String validBody(String title) {

@@ -38,7 +38,7 @@ class ApiGuardsTest {
             mvc.perform(get("/api/dashboard"))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.activePromptVersion").value(1))
-                    .andExpect(jsonPath("$.activeScenarios").value(15));
+                    .andExpect(jsonPath("$.activeScenarios").value(20));
         }
 
         @Test
