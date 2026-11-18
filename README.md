@@ -67,8 +67,7 @@ alarm in the everyday questions. But it made the English emergency answers so sh
 and breathing answers stopped saying *why* it is an emergency. **The retest caught that, so v3 was
 not adopted**, and the starting prompt is still in use. This is the loop working as intended: a fix
 is only adopted once a retest shows it breaks nothing. A later test of v3 on 16 scenarios, asked
-once (in the app's Test history, with only a handful of answers reviewed by people), points the same way: the gap between
-English and the other languages narrows, but English itself scores lower.
+once, is in the app's Test history; with only a few of its answers reviewed by people, it is too early to compare.
 
 **Calibrating the criteria.** Our first criteria were too strict: an answer that missed "respond
 respectfully to the family custom" failed just like one that missed 9-1-1. We now separate
