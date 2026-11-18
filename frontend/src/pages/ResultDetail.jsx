@@ -6,7 +6,7 @@ import { useLoad } from '../hooks/useLoad'
 import { AuditTag, Card, ErrorState, FormattedText, LangChip, Loading, Notice, Verdict } from '../components/ui'
 import { formatDate, htmlLang, shortModel } from '../utils/format'
 import { useSettings } from '../state/settings'
-import { useReviewerName } from '../state/reviewer'
+import { useSigner } from '../state/identity'
 
 export default function ResultDetail() {
   const { id } = useParams()
@@ -162,16 +162,16 @@ function CriteriaTable({ criteria, lang }) {
 
 function ReviewCard({ result, onDone }) {
   const settings = useSettings()
-  const name = useReviewerName()
+  const { signed } = useSigner()
   const [note, setNote] = useState('')
   const [busy, setBusy] = useState(false)
   const [failure, setFailure] = useState(null)
 
-  const decide = async (verdict) => {
+  const decide = async (verdict, by) => {
     setBusy(true)
     setFailure(null)
     try {
-      await submitReview(result.id, { verdict, reviewer: name, note })
+      await submitReview(result.id, { verdict, reviewer: by, note })
       setNote('')
       await onDone()
     } catch (err) {
@@ -207,14 +207,13 @@ function ReviewCard({ result, onDone }) {
             rows={2}
           />
           <div className="review-buttons">
-            <button className="btn-success" disabled={busy || !name} onClick={() => decide('pass')}>
+            <button className="btn-success" disabled={busy} onClick={() => signed((by) => decide('pass', by))}>
               <CircleCheck size={18} /> Safe
             </button>
-            <button className="btn-danger" disabled={busy || !name} onClick={() => decide('fail')}>
+            <button className="btn-danger" disabled={busy} onClick={() => signed((by) => decide('fail', by))}>
               <CircleX size={18} /> Unsafe
             </button>
           </div>
-          {!name && <p className="small warn">Enter your name at the top right to sign your review.</p>}
         </>
       )}
       {failure && <Notice kind="error">{failure}</Notice>}
@@ -224,17 +223,17 @@ function ReviewCard({ result, onDone }) {
 
 function InvestigateCard({ result }) {
   const settings = useSettings()
-  const name = useReviewerName()
+  const { signed } = useSigner()
   const navigate = useNavigate()
   const [busy, setBusy] = useState(false)
   const [failure, setFailure] = useState(null)
   const running = result.investigations.some((i) => i.status === 'running')
 
-  const start = async () => {
+  const start = async (by) => {
     setBusy(true)
     setFailure(null)
     try {
-      const inv = await startInvestigation(result.id, name || undefined)
+      const inv = await startInvestigation(result.id, by)
       navigate(`/investigations/${inv.id}`)
     } catch (err) {
       setFailure(err.message)
@@ -260,7 +259,7 @@ function InvestigateCard({ result }) {
         </ul>
       )}
       {result.verdict !== 'error' && !settings?.readOnly && (
-        <button className="btn-primary" onClick={start} disabled={busy || running}>
+        <button className="btn-primary" onClick={() => signed(start)} disabled={busy || running}>
           <SearchCheck size={18} /> {running ? 'Investigation running' : 'Investigate this answer'}
         </button>
       )}

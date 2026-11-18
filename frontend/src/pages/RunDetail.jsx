@@ -7,7 +7,7 @@ import { AuditTag, Card, ErrorState, LangChip, Loading, Notice, Progress, Status
 import LanguageBars from '../components/LanguageBars'
 import { formatDate, percent, shortModel } from '../utils/format'
 import { useSettings } from '../state/settings'
-import { useReviewerName } from '../state/reviewer'
+import { useSigner } from '../state/identity'
 
 const LANGS = ['EN', 'TA', 'HI', 'ML']
 
@@ -155,18 +155,18 @@ const label = (v) => ({ pass: 'Pass', fail: 'Fail', needs_review: 'Review', erro
 
 function RunActions({ run }) {
   const settings = useSettings()
-  const name = useReviewerName()
+  const { signed } = useSigner()
   const navigate = useNavigate()
   const [busy, setBusy] = useState(false)
   const [failure, setFailure] = useState(null)
   if (run.status === 'running') return null
 
   const failing = run.counts.fail + run.counts.needsReview
-  const propose = async () => {
+  const propose = async (by) => {
     setBusy(true)
     setFailure(null)
     try {
-      const proposal = await proposeFix(run.code, name || undefined)
+      const proposal = await proposeFix(run.code, by)
       navigate(`/fixes/${proposal.version}`)
     } catch (err) {
       setFailure(err.message)
@@ -182,7 +182,7 @@ function RunActions({ run }) {
         </Link>
       )}
       {failing > 0 && (
-        <button className="btn-primary" onClick={propose} disabled={busy || settings?.readOnly}>
+        <button className="btn-primary" onClick={() => signed(propose)} disabled={busy || settings?.readOnly}>
           <Wand2 size={18} /> {busy ? 'The agent is writing a fix (about 30 s)…' : 'Ask the agent for a fix'}
         </button>
       )}

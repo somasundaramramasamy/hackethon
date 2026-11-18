@@ -6,7 +6,7 @@ import { useLoad } from '../hooks/useLoad'
 import { Card, ErrorState, Loading, Notice } from '../components/ui'
 import RunsTable from '../components/RunsTable'
 import { useSettings } from '../state/settings'
-import { useReviewerName } from '../state/reviewer'
+import { useSigner } from '../state/identity'
 
 export default function Runs() {
   const { data: runs, error, loading } = useLoad(getRuns, [], {
@@ -24,7 +24,7 @@ export default function Runs() {
 
 function NewRun({ running }) {
   const settings = useSettings()
-  const name = useReviewerName()
+  const { signed } = useSigner()
   const navigate = useNavigate()
   const [model, setModel] = useState('')
   const [judge, setJudge] = useState('')
@@ -37,8 +37,12 @@ function NewRun({ running }) {
   const configured = settings.assistantConfigured && settings.judgeConfigured
   const disabled = settings.readOnly || !configured || running || busy || languages.length === 0
 
-  const submit = async (e) => {
+  const submit = (e) => {
     e.preventDefault()
+    signed(start)
+  }
+
+  const start = async (by) => {
     setBusy(true)
     setFailure(null)
     try {
@@ -47,7 +51,7 @@ function NewRun({ running }) {
         judgeModel: judge || undefined,
         repeats,
         languages,
-        startedBy: name || undefined,
+        startedBy: by,
       })
       navigate(`/runs/${run.code}`)
     } catch (err) {

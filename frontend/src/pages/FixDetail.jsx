@@ -8,7 +8,7 @@ import PromptStatus from '../components/PromptStatus'
 import { diffLines } from '../utils/diff'
 import { formatDate } from '../utils/format'
 import { useSettings } from '../state/settings'
-import { useReviewerName } from '../state/reviewer'
+import { useSigner } from '../state/identity'
 
 export default function FixDetail() {
   const { version } = useParams()
@@ -90,17 +90,18 @@ export default function FixDetail() {
 
 function Decisions({ prompt, retests, onDone }) {
   const settings = useSettings()
-  const name = useReviewerName()
+  const { signed } = useSigner()
   const [note, setNote] = useState('')
   const [busy, setBusy] = useState(false)
   const [failure, setFailure] = useState(null)
   if (settings?.readOnly) return null
 
-  const decide = async (decision) => {
+  const decide = (decision) => signed((by) => record(decision, by))
+  const record = async (decision, by) => {
     setBusy(true)
     setFailure(null)
     try {
-      await decidePrompt(prompt.version, decision, name, note || undefined)
+      await decidePrompt(prompt.version, decision, by, note || undefined)
       setNote('')
       await onDone()
     } catch (err) {
@@ -129,22 +130,22 @@ function Decisions({ prompt, retests, onDone }) {
             maxLength={1000}
           />
           <div className="review-buttons">
-            <button className="btn-success" disabled={busy || !name} onClick={() => decide('approve')}>
+            <button className="btn-success" disabled={busy} onClick={() => decide('approve')}>
               <Check size={18} /> Approve and retest
             </button>
-            <button className="btn-danger" disabled={busy || !name} onClick={() => decide('reject')}>
+            <button className="btn-danger" disabled={busy} onClick={() => decide('reject')}>
               <X size={18} /> Reject
             </button>
           </div>
         </>
       )}
       {prompt.status === 'approved' && retests.length === 0 && (
-        <button className="btn-primary" disabled={busy || !name} onClick={() => decide('retest')}>
+        <button className="btn-primary" disabled={busy} onClick={() => decide('retest')}>
           <FlaskConical size={18} /> Start the retest
         </button>
       )}
       {prompt.status === 'approved' && (
-        <button className="btn-success" disabled={busy || !name || !finishedRetest} onClick={() => decide('adopt')}>
+        <button className="btn-success" disabled={busy || !finishedRetest} onClick={() => decide('adopt')}>
           <Check size={18} /> Adopt v{prompt.version}
         </button>
       )}
@@ -152,12 +153,9 @@ function Decisions({ prompt, retests, onDone }) {
         <span className="muted small">{retestRunning ? 'Adopt once the retest finishes.' : 'Adopt after a retest.'}</span>
       )}
       {prompt.status === 'retired' && (
-        <button className="btn-secondary" disabled={busy || !name} onClick={() => decide('adopt')}>
+        <button className="btn-secondary" disabled={busy} onClick={() => decide('adopt')}>
           <RotateCcw size={18} /> Roll back to v{prompt.version}
         </button>
-      )}
-      {!name && prompt.status !== 'active' && prompt.status !== 'rejected' && (
-        <p className="small warn">Enter your name at the top right: every decision is signed.</p>
       )}
       {failure && <Notice kind="error">{failure}</Notice>}
     </div>
