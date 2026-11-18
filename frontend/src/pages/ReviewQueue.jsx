@@ -1,6 +1,6 @@
 import { Link, useSearchParams } from 'react-router-dom'
 import { ClipboardCheck, History, Languages, LayoutDashboard, Scale, Stethoscope } from 'lucide-react'
-import { getAgreement, getReviewHistory, getReviewQueue } from '../api/client'
+import { getReviewHistory, getReviewQueue } from '../api/client'
 import { useLoad } from '../hooks/useLoad'
 import { useIdentity } from '../state/identity'
 import { AuditTag, Card, ErrorState, LangChip, Loading, Progress, Verdict } from '../components/ui'
@@ -41,7 +41,6 @@ export default function ReviewQueue() {
   const view = params.get('view') === 'reviewed' ? 'reviewed' : 'waiting'
   const disagreements = params.get('disagreements') === '1'
   const queue = useLoad(() => getReviewQueue({ run, language }), [run, language])
-  const agreement = useLoad(getAgreement, [])
   // Everything reviewed in the run; the language and disagreement filters apply below.
   const history = useLoad(() => getReviewHistory({ run }), [run])
 
@@ -61,7 +60,7 @@ export default function ReviewQueue() {
       {page?.runCode && (
         <ReviewDashboard
           page={page}
-          agreement={agreement}
+          onRun={(code) => choose({ run: code })}
           onLanguage={(l) => choose({ language: l, view: '' })}
           onReviewed={() => choose({ view: 'reviewed' })}
         />
@@ -133,16 +132,6 @@ function QueueFilters({ page, language, onChange }) {
   const total = page.languages.reduce((sum, l) => sum + l.waiting, 0)
   return (
     <div className="queue-filters">
-      <label className="field queue-run">
-        <span className="field-label">Run</span>
-        <select value={page.runCode ?? ''} onChange={(e) => onChange({ run: e.target.value })}>
-          {page.runs.map((r) => (
-            <option key={r.code} value={r.code}>
-              {r.name} · {r.code} · {r.waiting} waiting
-            </option>
-          ))}
-        </select>
-      </label>
       <div className="lang-filter" role="group" aria-label="Language">
         <button type="button" className={!language ? 'active' : ''} aria-pressed={!language} onClick={() => onChange({ language: '' })}>
           All <span className="count">{total}</span>
@@ -179,18 +168,6 @@ function ReviewedPanel({ page, history, language, disagreements, onChange }) {
         the decision. Disagreements with the judge are what the agreement rate is built from.
       </p>
       <div className="queue-filters">
-        {page && (
-          <label className="field queue-run">
-            <span className="field-label">Run</span>
-            <select value={page.runCode ?? ''} onChange={(e) => onChange({ run: e.target.value })}>
-              {page.runs.map((r) => (
-                <option key={r.code} value={r.code}>
-                  {r.name} · {r.code}
-                </option>
-              ))}
-            </select>
-          </label>
-        )}
         <div className="lang-filter" role="group" aria-label="Language">
           <button type="button" className={!lang ? 'active' : ''} aria-pressed={!lang} onClick={() => onChange({ language: '' })}>
             All <span className="count">{all.length}</span>
@@ -331,15 +308,29 @@ function QueueTable({ items, loading }) {
  * What is left to review in the chosen run, and whose job it is: English answers go to a clinician,
  * the others to a native speaker of the language. Language counts set the filter below.
  */
-function ReviewDashboard({ page, agreement, onLanguage, onReviewed }) {
+function ReviewDashboard({ page, onRun, onLanguage, onReviewed }) {
   const count = (code) => page.languages.find((l) => l.language === code)?.waiting ?? 0
   const waiting = page.languages.reduce((sum, l) => sum + l.waiting, 0)
   const english = count('EN')
   const native = page.languages.filter((l) => l.language !== 'EN')
   const picked = waiting + page.reviewed
-  const runName = page.runs.find((r) => r.code === page.runCode)?.name ?? page.runCode
   return (
-    <Card title="Review dashboard" icon={LayoutDashboard} action={<span className="muted small">{runName}</span>}>
+    <Card
+      title="Review dashboard"
+      icon={LayoutDashboard}
+      action={
+        <label className="test-picker">
+          <span>Test</span>
+          <select value={page.runCode ?? ''} onChange={(e) => onRun(e.target.value)}>
+            {page.runs.map((r) => (
+              <option key={r.code} value={r.code} title={r.code}>
+                {r.name} · {r.waiting} waiting
+              </option>
+            ))}
+          </select>
+        </label>
+      }
+    >
       <div className="review-stats">
         <div className="review-stat">
           <span className="review-stat-label">Waiting for review</span>
@@ -389,7 +380,7 @@ function ReviewDashboard({ page, agreement, onLanguage, onReviewed }) {
           <span className="review-stat-label">
             <Scale size={15} /> Judge agrees with people
           </span>
-          <Agreement agreement={agreement} />
+          <Agreement agreement={page.agreement} />
         </div>
       </div>
     </Card>
@@ -397,24 +388,21 @@ function ReviewDashboard({ page, agreement, onLanguage, onReviewed }) {
 }
 
 function Agreement({ agreement }) {
-  if (agreement.loading && !agreement.data) return <Loading />
-  if (agreement.error) return <span className="muted small">Could not load the agreement.</span>
-  const { overall } = agreement.data
-  if (!overall.reviewed) {
+  if (!agreement?.reviewed) {
     return (
       <>
         <span className="review-stat-value muted">—</span>
-        <span className="muted small">Appears after the first reviews, across all tests</span>
+        <span className="muted small">Appears once people review answers the judge passed or failed in this test</span>
       </>
     )
   }
   return (
     <>
-      <span className="review-stat-value">{percent(overall.rate)}</span>
+      <span className="review-stat-value">{percent(agreement.rate)}</span>
       <span className="muted small">
-        {overall.agreed} of {overall.reviewed} reviewed, all tests · missed failures{' '}
-        <b className={overall.missedFailures ? 'bad' : ''}>{overall.missedFailures}</b> · false alarms{' '}
-        <b>{overall.falseAlarms}</b>
+        {agreement.agreed} of {agreement.reviewed} in this test · missed failures{' '}
+        <b className={agreement.missedFailures ? 'bad' : ''}>{agreement.missedFailures}</b> · false alarms{' '}
+        <b>{agreement.falseAlarms}</b>
       </span>
     </>
   )
