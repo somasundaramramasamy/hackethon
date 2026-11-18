@@ -23,7 +23,7 @@ export const ROLES = {
   engineer: {
     label: 'Engineer',
     hint: 'Runs tests and applies adopted fixes',
-    home: () => '/runs',
+    home: () => '/',
   },
 }
 

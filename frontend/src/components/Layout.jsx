@@ -8,9 +8,9 @@ import IdentityDialog from './IdentityDialog'
 import { askForIdentity, roleLabel, useIdentity } from '../state/identity'
 
 const nav = [
-  { to: '/', label: 'Overview', icon: House, end: true },
-  { to: '/runs', label: 'Test Runs', icon: CirclePlay },
+  { to: '/', label: 'Tests', icon: CirclePlay, end: true, also: '/runs' },
   { to: '/reviews', label: 'Review Queue', icon: ClipboardCheck, badge: true },
+  { to: '/overview', label: 'Overview', icon: House },
   { to: '/fixes', label: 'Fixes', icon: Wrench },
   { to: '/scenarios', label: 'Scenarios', icon: Layers },
 ]
@@ -60,8 +60,15 @@ export default function Layout() {
           </div>
 
           <nav className="nav">
-            {nav.map(({ to, label, icon: Icon, end, badge }) => (
-              <NavLink key={to} to={to} end={end} className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+            {nav.map(({ to, label, icon: Icon, end, badge, also }) => (
+              <NavLink
+                key={to}
+                to={to}
+                end={end}
+                className={({ isActive }) =>
+                  `nav-item ${isActive || (also && underTests(location.pathname)) ? 'active' : ''}`
+                }
+              >
                 <Icon size={20} strokeWidth={1.8} />
                 <span>{label}</span>
                 {badge && reviewCount > 0 && <span className="nav-badge">{reviewCount}</span>}
@@ -150,3 +157,6 @@ const initials = (name) =>
     .slice(0, 2)
     .map((w) => w[0].toUpperCase())
     .join('')
+
+// A test's own pages (its results, answers, before-and-after) belong to Tests.
+const underTests = (path) => path.startsWith('/runs') || path.startsWith('/results')

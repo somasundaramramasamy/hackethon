@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { createBrowserRouter, Link, RouterProvider } from 'react-router-dom'
+import { createBrowserRouter, Link, Navigate, RouterProvider } from 'react-router-dom'
 import Layout from './components/Layout'
 import Splash from './components/Splash'
 import { splashSeen } from './state/splash'
@@ -24,24 +24,25 @@ const router = createBrowserRouter([
     children: [
       {
         index: true,
+        element: <Runs />,
+        handle: page('Tests', 'Ask every scenario in every language, then check each answer'),
+      },
+      { path: 'runs', element: <Navigate to="/" replace /> },
+      {
+        path: 'overview',
         element: <Dashboard />,
         handle: page('Overview', 'Is the health assistant as safe in Tamil, Hindi and Malayalam as in English?'),
       },
       {
-        path: 'runs',
-        element: <Runs />,
-        handle: page('Test Runs', 'Ask every scenario in every language, then check each answer'),
-      },
-      {
         path: 'runs/:code',
         element: <RunDetail />,
-        handle: crumbs({ label: 'Test Runs', to: '/runs' }, ({ code }) => ({ label: code })),
+        handle: crumbs({ label: 'Tests', to: '/' }, ({ code }) => ({ label: code })),
       },
       {
         path: 'runs/:code/comparison',
         element: <Comparison />,
         handle: crumbs(
-          { label: 'Test Runs', to: '/runs' },
+          { label: 'Tests', to: '/' },
           ({ code }) => ({ label: code, to: `/runs/${code}` }),
           { label: 'Before and after' },
         ),
@@ -49,7 +50,7 @@ const router = createBrowserRouter([
       {
         path: 'results/:id',
         element: <ResultDetail />,
-        handle: crumbs({ label: 'Test Runs', to: '/runs' }, ({ id }) => ({ label: `Answer #${id}` })),
+        handle: crumbs({ label: 'Tests', to: '/' }, ({ id }) => ({ label: `Answer #${id}` })),
       },
       {
         path: 'reviews',
@@ -95,7 +96,7 @@ function NotFound() {
   return (
     <div className="card">
       <p>
-        This page does not exist. <Link to="/">Back to the overview</Link>
+        This page does not exist. <Link to="/">Back to the tests</Link>
       </p>
     </div>
   )

@@ -809,3 +809,232 @@ textarea.note {
   margin: -4px 0 2px;
   font-size: 17px;
 }
+
+/* New test: progress line */
+.stepper {
+  display: flex;
+  list-style: none;
+  margin: 4px 0 22px;
+  padding: 0;
+  counter-reset: step;
+}
+.step {
+  position: relative;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--muted);
+}
+.step + .step::before {
+  content: '';
+  position: absolute;
+  top: 15px;
+  right: 50%;
+  width: 100%;
+  height: 2px;
+  background: var(--border);
+  z-index: 0;
+}
+.step-done + .step::before,
+.step-done + .step-current::before {
+  background: var(--blue);
+}
+.step-dot {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 2px solid var(--border);
+  background: #fff;
+  font-weight: 700;
+  font-size: 14px;
+  transition: all 0.2s;
+}
+.step-current .step-dot {
+  border-color: var(--blue);
+  background: var(--blue);
+  color: #fff;
+  box-shadow: 0 0 0 5px var(--blue-50);
+}
+.step-done .step-dot {
+  border-color: var(--blue);
+  background: var(--blue-50);
+  color: var(--blue-600);
+}
+.step-current .step-label {
+  color: var(--text);
+  font-weight: 600;
+}
+
+/* New test: fields on one baseline, all the same height */
+.test-form {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 18px 16px;
+  align-items: start;
+}
+.test-form .test-name,
+.test-form .form-actions {
+  grid-column: 1 / -1;
+}
+.test-form .form-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+.test-form select,
+.test-form input,
+.select-like {
+  height: 40px;
+  box-sizing: border-box;
+}
+.select-like {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fff;
+  font: inherit;
+  font-size: 14px;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+.select-like > span {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.select-like svg {
+  flex: none;
+  color: var(--muted);
+}
+.select-like.locked {
+  background: var(--bg);
+  color: var(--text-2);
+  cursor: default;
+}
+.multi-select {
+  position: relative;
+}
+.multi-select-menu {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  padding: 6px;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 10px 30px rgba(16, 24, 64, 0.12);
+}
+.multi-select-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+}
+.multi-select-option:hover {
+  background: var(--blue-50);
+}
+.field-hint.warn {
+  color: #b45309;
+}
+
+/* New test: choosing scenarios */
+.scenario-step-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.scenario-step-head p {
+  margin: 0;
+  max-width: 560px;
+}
+.scenario-step-tools {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.scenario-pick {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 8px;
+  max-height: 380px;
+  overflow-y: auto;
+}
+.scenario-pick label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 14px;
+}
+.scenario-pick label.on {
+  border-color: #b8ccff;
+  background: #f7f9ff;
+}
+.scenario-pick-text {
+  flex: 1;
+  min-width: 0;
+}
+.scenario-step-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+.scenario-step-foot p {
+  margin: 0;
+}
+.scenario-step-foot .form-actions {
+  display: flex;
+  gap: 10px;
+}
+.modal-wide {
+  width: min(960px, 100%);
+}
+.modal-title {
+  margin: 0;
+  font-size: 20px;
+}
+
+@media (max-width: 900px) {
+  .test-form {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 560px) {
+  .test-form {
+    grid-template-columns: 1fr;
+  }
+  .stepper .step-label {
+    font-size: 12px;
+  }
+}

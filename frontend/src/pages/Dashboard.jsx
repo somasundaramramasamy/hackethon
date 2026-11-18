@@ -2,14 +2,13 @@ import { Link } from 'react-router-dom'
 import { ClipboardCheck, FileText, FlaskConical, History, ArrowRight, BellRing, Scale, Wrench, CirclePlay } from 'lucide-react'
 import { getDashboard } from '../api/client'
 import { useLoad } from '../hooks/useLoad'
-import { Card, ChangeCount, ErrorState, Loading, Notice, Progress } from '../components/ui'
+import { Card, ErrorState, Loading, Notice, Progress } from '../components/ui'
 import LanguageBars from '../components/LanguageBars'
-import RunsTable from '../components/RunsTable'
 import { formatDate, percent, shortModel } from '../utils/format'
 
 /**
  * The overview: the latest test, clearly labelled as one test, and what needs a person across tests.
- * Each test's full results live on its own page.
+ * Each test's full results live on its own page, and every test is listed on the Tests page.
  */
 export default function Dashboard() {
   const { data, error, loading } = useLoad(getDashboard, [], { shouldPoll: (d) => Boolean(d?.running) })
@@ -34,7 +33,7 @@ export default function Dashboard() {
             Malayalam, checks every answer, and shows where safety drops in a language. Results appear here once the
             first test finishes.
           </p>
-          <Link className="btn-primary inline" to="/runs">
+          <Link className="btn-primary inline" to="/">
             Start your first test <ArrowRight size={16} />
           </Link>
         </Card>
@@ -44,29 +43,6 @@ export default function Dashboard() {
           <NeedsYou data={data} retest={retest} />
         </div>
       )}
-
-      {retest && (
-        <Card
-          title={`Latest fix: prompt v${retest.retest.promptVersion}`}
-          icon={Wrench}
-          action={
-            <Link className="link" to={`/runs/${retest.retest.code}/comparison`}>
-              Before and after <ArrowRight size={16} />
-            </Link>
-          }
-        >
-          <div className="change-counts">
-            <ChangeCount tone="good" value={retest.counts.fixed} label="fixed" />
-            <ChangeCount tone="bad" value={retest.counts.stillFailing} label="still failing" />
-            <ChangeCount tone="bad" value={retest.counts.newFailures} label="new failures" />
-            <ChangeCount tone="neutral" value={retest.counts.stillPassing} label="still passing" />
-          </div>
-        </Card>
-      )}
-
-      <Card title="Recent tests" icon={History}>
-        <RunsTable runs={data.recentRuns} />
-      </Card>
     </div>
   )
 }
@@ -103,7 +79,7 @@ function LatestTest({ base }) {
         </div>
       </div>
       <LanguageBars languages={base.languages} />
-      <Link className="btn-secondary inline latest-new" to="/runs">
+      <Link className="btn-secondary inline latest-new" to="/">
         <CirclePlay size={16} /> Start a new test
       </Link>
     </Card>

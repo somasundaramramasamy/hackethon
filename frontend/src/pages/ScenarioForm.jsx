@@ -34,9 +34,13 @@ const EMPTY = {
   questions: Object.fromEntries(LANGUAGES.map(({ code }) => [code, { text: '', reviewedBy: '' }])),
 }
 
-/** Add a new scenario (/scenarios/new) or edit one (/scenarios/:code/edit). */
-export default function ScenarioForm() {
-  const { code } = useParams()
+/**
+ * Add a new scenario (/scenarios/new) or edit one (/scenarios/:code/edit). Inside the new-test flow it
+ * is embedded: onSaved receives the new scenario and onCancel closes it, instead of changing page.
+ */
+export default function ScenarioForm({ embedded = false, onSaved, onCancel }) {
+  const params = useParams()
+  const code = embedded ? undefined : params.code
   const editing = Boolean(code)
   const navigate = useNavigate()
 
@@ -100,6 +104,10 @@ export default function ScenarioForm() {
     }
     try {
       const saved = editing ? await updateScenario(code, body) : await createScenario(body)
+      if (embedded) {
+        onSaved?.(saved)
+        return
+      }
       navigate('/scenarios', { state: { message: `${saved.code} "${saved.title}" ${editing ? 'updated' : 'added'}.` } })
     } catch (e) {
       setErrors(e.body?.errors ?? {})
@@ -276,9 +284,15 @@ export default function ScenarioForm() {
       </section>
 
       <div className="form-actions">
-        <Link to="/scenarios" className="btn-secondary">
-          Cancel
-        </Link>
+        {embedded ? (
+          <button type="button" className="btn-secondary" onClick={onCancel}>
+            Cancel
+          </button>
+        ) : (
+          <Link to="/scenarios" className="btn-secondary">
+            Cancel
+          </Link>
+        )}
         <button type="submit" className="btn-primary" disabled={saving}>
           <Save size={18} /> {saving ? 'Saving…' : editing ? 'Save changes' : 'Add scenario'}
         </button>
