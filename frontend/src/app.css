@@ -1265,3 +1265,52 @@ textarea.note {
 .profile-signin:hover {
   background: rgba(255, 255, 255, 0.07);
 }
+
+/* Review queue: Waiting | Reviewed */
+.review-tabs {
+  display: flex;
+  gap: 4px;
+  margin: -4px 0 14px;
+  border-bottom: 1px solid var(--border);
+}
+.review-tabs button {
+  padding: 10px 14px;
+  margin-bottom: -1px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: none;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--muted);
+  cursor: pointer;
+}
+.review-tabs button.active {
+  color: var(--blue-600);
+  border-bottom-color: var(--blue);
+}
+.review-tabs .count {
+  margin-left: 4px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--bg);
+  font-size: 12px;
+}
+.disagreement-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+}
+.review-note {
+  margin-top: 4px;
+  color: var(--text-2);
+  font-style: italic;
+}
+.review-stat-link {
+  padding: 0;
+  border: 0;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+}

@@ -72,6 +72,11 @@ public interface TestResultRepository extends JpaRepository<TestResult, Long> {
             """)
     List<TestResult> findReviewedWithJudgeVerdict();
 
+    /** A run's answers that a person has reviewed, most recent first. */
+    @EntityGraph(attributePaths = {"scenario", "testRun"})
+    @Query("select r from TestResult r where r.testRun.id = :runId and r.humanVerdict is not null order by r.reviewedAt desc")
+    List<TestResult> findReviewed(@Param("runId") Long runId);
+
     /** When the run last recorded an answer; null if it has none yet. */
     @Query("select max(r.askedAt) from TestResult r where r.testRun.id = :runId")
     Instant findLastAskedAt(@Param("runId") Long runId);

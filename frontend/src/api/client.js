@@ -53,6 +53,7 @@ export const getReviewQueue = ({ run, language } = {}) => {
   const query = params.toString()
   return request(`/api/reviews/queue${query ? `?${query}` : ''}`)
 }
+export const getReviewHistory = ({ run } = {}) => request(`/api/reviews/history${run ? `?run=${id(run)}` : ''}`)
 export const getReviewQueueCount = () => request('/api/reviews/queue/count').then((r) => r.count)
 export const getAgreement = () => request('/api/reviews/agreement')
 export const submitReview = (resultId, body) => post(`/api/results/${id(resultId)}/review`, body)

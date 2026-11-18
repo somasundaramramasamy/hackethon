@@ -22,6 +22,20 @@ public final class ReviewViews {
             long waiting) {
     }
 
+    /**
+     * An answer a person has reviewed.
+     *
+     * @param verdict      the automated verdict (rule check and judge combined)
+     * @param judgeVerdict the judge's own verdict
+     * @param agreement    {@code agreed}, {@code missed_failure} (judge passed it, the person did not),
+     *                     {@code false_alarm} (judge failed it, the person passed it), or {@code not_compared}
+     *                     when the judge gave no definite verdict
+     */
+    public record ReviewedItem(Long id, String runCode, String scenarioCode, String scenarioTitle, String language,
+            String languageName, int attempt, String verdict, String judgeVerdict, String humanVerdict,
+            String agreement, String reviewedBy, String note, Instant reviewedAt) {
+    }
+
     public record LanguageCount(String language, String languageName, long waiting) {
     }
 
