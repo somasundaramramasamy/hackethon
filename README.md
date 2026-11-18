@@ -197,7 +197,7 @@ backend/   Spring Boot 4, Java 21, JPA + Flyway (MySQL/TiDB)
   agent/      the investigator and fix agents, and approvals
   prompt/     system prompt versions
   scenario/   test scenarios, import and export
-frontend/  React 19 + Vite: overview, runs, answers with evidence, review queue,
+frontend/  React 19 + Vite: tests, test history, answers with evidence, review queue,
            investigations, fixes, before and after, scenarios
 tools/pilot/  the first local pilot with Ollama models, kept for reference
 ```

@@ -738,54 +738,6 @@ textarea.note {
   text-decoration: underline;
 }
 
-/* Overview */
-.latest-meta {
-  margin: -4px 0 14px;
-}
-.latest-figures {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 28px;
-  margin-bottom: 16px;
-}
-.latest-value {
-  font-size: 32px;
-  font-weight: 700;
-  line-height: 1.1;
-}
-.latest-value.bad {
-  color: var(--red);
-}
-.latest-new {
-  margin-top: 16px;
-}
-.needs-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-.needs-list li {
-  display: flex;
-  gap: 10px;
-  align-items: flex-start;
-  line-height: 1.45;
-}
-.needs-list li > svg {
-  flex: none;
-  margin-top: 2px;
-  color: var(--blue-600);
-}
-.link.block {
-  display: flex;
-  width: fit-content;
-  align-items: center;
-  gap: 4px;
-  margin-top: 4px;
-}
-
 /* Test names */
 .run-form .run-name {
   grid-column: 1 / -1;
@@ -804,10 +756,6 @@ textarea.note {
   flex: 1 1 260px;
   font-size: 18px;
   font-weight: 600;
-}
-.latest-name {
-  margin: -4px 0 2px;
-  font-size: 17px;
 }
 
 /* New test: progress line */
@@ -1080,4 +1028,173 @@ textarea.note {
   margin: 4px 10px 6px;
   font-size: 12px;
   color: var(--muted);
+}
+
+/* Review dashboard */
+.review-stats {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 12px;
+}
+.review-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: #fff;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+}
+.review-stat.clickable {
+  cursor: pointer;
+}
+.review-stat.clickable:hover {
+  border-color: #b8ccff;
+  background: #f7f9ff;
+}
+.review-stat-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-2);
+}
+.review-stat-value {
+  font-size: 30px;
+  font-weight: 700;
+  line-height: 1.1;
+}
+.review-langs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.review-langs button {
+  padding: 4px 9px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--bg);
+  font: inherit;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+.review-langs button:hover {
+  border-color: #b8ccff;
+  background: var(--blue-50);
+}
+.review-split {
+  display: flex;
+  gap: 14px;
+  font-size: 15px;
+}
+.review-split b {
+  font-size: 22px;
+}
+@media (max-width: 1100px) {
+  .review-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 560px) {
+  .review-stats {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Tests workspace */
+.test-started {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.test-started p {
+  margin: 0;
+}
+.test-started .form-actions {
+  display: flex;
+  gap: 10px;
+}
+.run-embedded-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* Needs attention, on Tests */
+.needs-attention {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border: 1px solid #f5d48b;
+  border-radius: 12px;
+  background: var(--amber-50);
+  color: #8a5a00;
+  font-size: 14px;
+}
+.needs-attention > svg {
+  flex: none;
+}
+.needs-attention-items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 18px;
+}
+.needs-attention a {
+  color: inherit;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* Test history */
+.history-totals {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.history-total {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+.history-total-value {
+  font-size: 30px;
+  font-weight: 700;
+  line-height: 1.1;
+}
+.history-total-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-2);
+}
+.history-sub {
+  margin: 0 0 8px;
+  font-size: 15px;
+}
+@media (max-width: 1100px) {
+  .history-totals {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+.run-embedded-head .link {
+  text-transform: none;
+  letter-spacing: 0;
+}
+.history-note {
+  margin: 10px 0 0;
 }

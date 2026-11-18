@@ -1,9 +1,9 @@
 import { Link, useSearchParams } from 'react-router-dom'
-import { ClipboardCheck, Scale } from 'lucide-react'
+import { ClipboardCheck, Languages, LayoutDashboard, Scale, Stethoscope } from 'lucide-react'
 import { getAgreement, getReviewQueue } from '../api/client'
 import { useLoad } from '../hooks/useLoad'
 import { useIdentity } from '../state/identity'
-import { AuditTag, Card, ErrorState, LangChip, Loading, Verdict } from '../components/ui'
+import { AuditTag, Card, ErrorState, LangChip, Loading, Progress, Verdict } from '../components/ui'
 import { formatDate, percent } from '../utils/format'
 
 const LANGUAGE_KEY = 'kavasam.reviewLanguage'
@@ -54,11 +54,14 @@ export default function ReviewQueue() {
   const page = queue.data
   return (
     <div className="page">
-      <Card title="Waiting for a native speaker" icon={ClipboardCheck}>
+      {page?.runCode && <ReviewDashboard page={page} agreement={agreement} onLanguage={(l) => choose({ language: l })} />}
+
+      <Card title="Waiting for review" icon={ClipboardCheck}>
         <p className="muted card-intro">
           Answers the automated checks could not decide, plus a random spot-check of 20% of failures and 10% of passes
-          in each language, so the judge&apos;s mistakes in either direction are measured. Open one, read it in its own
-          language, and mark it safe or unsafe. Any other answer can be reviewed from its own page.
+          in each language, so the judge&apos;s mistakes in either direction are measured. Native speakers review
+          answers in their own language; clinicians review English answers for medical safety. Open one, read it, and
+          mark it safe or unsafe. Any other answer can be reviewed from its own page.
         </p>
         {queue.loading && !page ? (
           <Loading />
@@ -77,16 +80,6 @@ export default function ReviewQueue() {
               <QueueTable items={page.items} loading={queue.loading} />
             )}
           </>
-        )}
-      </Card>
-
-      <Card title="How often the judge agrees with people" icon={Scale}>
-        {agreement.loading && !agreement.data ? (
-          <Loading />
-        ) : agreement.error ? (
-          <ErrorState error={agreement.error} />
-        ) : (
-          <Agreement report={agreement.data} />
         )}
       </Card>
     </div>
@@ -170,39 +163,95 @@ function QueueTable({ items, loading }) {
   )
 }
 
-function Agreement({ report }) {
-  const { overall, byJudge } = report
+/**
+ * What is left to review in the chosen run, and whose job it is: English answers go to a clinician,
+ * the others to a native speaker of the language. Language counts set the filter below.
+ */
+function ReviewDashboard({ page, agreement, onLanguage }) {
+  const count = (code) => page.languages.find((l) => l.language === code)?.waiting ?? 0
+  const waiting = page.languages.reduce((sum, l) => sum + l.waiting, 0)
+  const english = count('EN')
+  const native = page.languages.filter((l) => l.language !== 'EN')
+  const picked = waiting + page.reviewed
+  const runName = page.runs.find((r) => r.code === page.runCode)?.name ?? page.runCode
+  return (
+    <Card title="Review dashboard" icon={LayoutDashboard} action={<span className="muted small">{runName}</span>}>
+      <div className="review-stats">
+        <div className="review-stat">
+          <span className="review-stat-label">Waiting for review</span>
+          <span className="review-stat-value">{waiting}</span>
+          <Progress done={page.reviewed} total={picked} />
+          <span className="muted small">
+            {page.reviewed} of {picked} picked answers reviewed
+          </span>
+        </div>
+
+        <button type="button" className="review-stat clickable" onClick={() => onLanguage('EN')}>
+          <span className="review-stat-label">
+            <Stethoscope size={15} /> For a clinician
+          </span>
+          <span className="review-stat-value">{english}</span>
+          <span className="muted small">English answers, checked for medical safety</span>
+        </button>
+
+        <div className="review-stat">
+          <span className="review-stat-label">
+            <Languages size={15} /> For native speakers
+          </span>
+          <span className="review-stat-value">{waiting - english}</span>
+          <span className="review-langs">
+            {native.map((l) => (
+              <button key={l.language} type="button" onClick={() => onLanguage(l.language)}>
+                {l.languageName} <b>{l.waiting}</b>
+              </button>
+            ))}
+          </span>
+        </div>
+
+        <div className="review-stat">
+          <span className="review-stat-label">Why they are here</span>
+          <span className="review-split">
+            <span>
+              <b>{page.unsure}</b> unsure
+            </span>
+            <span>
+              <b>{page.spotChecks}</b> spot-checks
+            </span>
+          </span>
+          <span className="muted small">Unsure: the checks could not decide. Spot-checks: picked at random.</span>
+        </div>
+
+        <div className="review-stat">
+          <span className="review-stat-label">
+            <Scale size={15} /> Judge agrees with people
+          </span>
+          <Agreement agreement={agreement} />
+        </div>
+      </div>
+    </Card>
+  )
+}
+
+function Agreement({ agreement }) {
+  if (agreement.loading && !agreement.data) return <Loading />
+  if (agreement.error) return <span className="muted small">Could not load the agreement.</span>
+  const { overall } = agreement.data
   if (!overall.reviewed) {
-    return <p className="muted">No reviews yet. The rate appears once people have reviewed answers the judge passed or failed.</p>
+    return (
+      <>
+        <span className="review-stat-value muted">—</span>
+        <span className="muted small">Appears after the first reviews, across all tests</span>
+      </>
+    )
   }
   return (
     <>
-      <p className="big-number">{percent(overall.rate)}</p>
-      <p className="muted small">
-        {overall.agreed} of {overall.reviewed} reviewed answers. Missed failures (judge said safe, a person said unsafe):{' '}
-        <b className={overall.missedFailures ? 'bad' : ''}>{overall.missedFailures}</b>. False alarms:{' '}
-        <b>{overall.falseAlarms}</b>.
-      </p>
-      {byJudge.length > 1 && (
-        <table className="table compact">
-          <thead>
-            <tr>
-              <th>Judge</th>
-              <th className="num">Reviewed</th>
-              <th className="num">Agrees</th>
-            </tr>
-          </thead>
-          <tbody>
-            {byJudge.map((j) => (
-              <tr key={j.judgeModel}>
-                <td>{j.judgeModel}</td>
-                <td className="num">{j.reviewed}</td>
-                <td className="num">{percent(j.rate)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
+      <span className="review-stat-value">{percent(overall.rate)}</span>
+      <span className="muted small">
+        {overall.agreed} of {overall.reviewed} reviewed, all tests · missed failures{' '}
+        <b className={overall.missedFailures ? 'bad' : ''}>{overall.missedFailures}</b> · false alarms{' '}
+        <b>{overall.falseAlarms}</b>
+      </span>
     </>
   )
 }

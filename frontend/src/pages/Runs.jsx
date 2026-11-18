@@ -1,11 +1,12 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { ArrowLeft, ArrowRight, CirclePlay, FlaskConical, History, Lock, Plus } from 'lucide-react'
-import { getRuns, getScenarios, startRun } from '../api/client'
+import { Link, useSearchParams } from 'react-router-dom'
+import { ArrowLeft, ArrowRight, BellRing, CirclePlay, FlaskConical, History, Lock, Plus, RotateCcw } from 'lucide-react'
+import { getPrompts, getReviewQueueCount, getRuns, getScenarios, startRun } from '../api/client'
+import { waitingFixes } from '../utils/fixes'
 import { useLoad } from '../hooks/useLoad'
 import { Card, ErrorState, Loading, Notice } from '../components/ui'
-import RunsTable from '../components/RunsTable'
 import Stepper from '../components/Stepper'
+import { RunView } from './RunDetail'
 import MultiSelect from '../components/MultiSelect'
 import ScenarioForm from './ScenarioForm'
 import { useSettings } from '../state/settings'
@@ -14,24 +15,64 @@ import { useSigner } from '../state/identity'
 // From our measured runs: about $3 for 180 answers with Gemma 4 31B and the Claude judge.
 const COST_PER_ANSWER = 3 / 180
 
+/**
+ * The test workspace: set up a test and choose its scenarios, then its result appears below. Every
+ * past test is on Test history.
+ */
 export default function Runs() {
-  const { data: runs, error, loading } = useLoad(getRuns, [], {
+  const [params, setParams] = useSearchParams()
+  const { data: runs } = useLoad(getRuns, [], {
     shouldPoll: (d) => d?.some((r) => r.status === 'running'),
   })
+  const running = runs?.find((r) => r.status === 'running')
+  // The test just started here (?test=CODE), or else one still running.
+  const code = params.get('test') || running?.code || null
+  const shown = runs?.find((r) => r.code === code)
+
   return (
     <div className="page">
-      <NewTest running={runs?.some((r) => r.status === 'running')} />
-      <Card title="All tests" icon={History}>
-        {loading && !runs ? <Loading /> : error ? <ErrorState error={error} /> : <RunsTable runs={runs} />}
-      </Card>
+      <NeedsAttention />
+      <NewTest
+        key={code ?? 'new'}
+        shown={shown}
+        running={Boolean(running)}
+        onStarted={(c) => setParams({ test: c })}
+        onAnother={() => setParams({})}
+      />
+      {code && <RunView key={`result-${code}`} code={code} embedded />}
     </div>
   )
 }
 
-function NewTest({ running }) {
+/** What waits for a person, shown only when something does. */
+function NeedsAttention() {
+  const reviews = useLoad(getReviewQueueCount, [])
+  const prompts = useLoad(getPrompts, [])
+  const fixes = waitingFixes(prompts.data)
+  const waiting = reviews.data ?? 0
+  if (!waiting && !fixes.length) return null
+  return (
+    <div className="needs-attention" role="status">
+      <BellRing size={18} />
+      <span className="needs-attention-items">
+        {fixes.map((f) => (
+          <Link key={f.version} to={`/fixes/${f.version}`}>
+            Fix v{f.version} {f.what}
+          </Link>
+        ))}
+        {waiting > 0 && (
+          <Link to="/reviews">
+            {waiting} {waiting === 1 ? 'answer waits' : 'answers wait'} for review in the latest test
+          </Link>
+        )}
+      </span>
+    </div>
+  )
+}
+
+function NewTest({ shown, running, onStarted, onAnother }) {
   const settings = useSettings()
   const { signed } = useSigner()
-  const navigate = useNavigate()
   const [step, setStep] = useState(1)
   const [name, setName] = useState('')
   const [model, setModel] = useState('')
@@ -57,11 +98,36 @@ function NewTest({ running }) {
         startedBy: by,
         name: name.trim() || undefined,
       })
-      navigate(`/runs/${run.code}`, { state: { fromNewTest: true } })
+      onStarted(run.code)
     } catch (err) {
       setFailure(err.message)
       setBusy(false)
     }
+  }
+
+  if (shown) {
+    const done = shown.status !== 'running'
+    return (
+      <Card title="New test" icon={FlaskConical}>
+        <Stepper current={done ? 4 : 3} />
+        <div className="test-started">
+          <p>
+            <b>{shown.name}</b>{' '}
+            {done
+              ? `finished: ${shown.completedTests} answers checked. The result is below.`
+              : `is running: ${shown.completedTests} of ${shown.plannedTests} answers checked. The result fills in below.`}
+          </p>
+          <div className="form-actions">
+            <Link className="btn-secondary" to="/history">
+              <History size={16} /> Test history
+            </Link>
+            <button type="button" className="btn-primary" onClick={onAnother} disabled={!done}>
+              <RotateCcw size={16} /> Set up another test
+            </button>
+          </div>
+        </div>
+      </Card>
+    )
   }
 
   return (
