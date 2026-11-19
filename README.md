@@ -179,12 +179,39 @@ The translations are drafts until native speakers review them: Tamil (Yokeshwara
 
 ## Run it locally
 
-Requirements: Java 21, Node 22, and MySQL 8 (or the team's shared TiDB database).
+Requirements: Java 21 and Node 22, plus a database: either our team database (option A) or your own
+MySQL 8 (option B).
 
 ```bash
 cp backend/.env.example backend/.env
-# Fill in the database, and OPENROUTER_API_KEY (https://openrouter.ai/keys, set a credit limit)
 ```
+
+**Option A: with our recorded results (for the BrAInstorm judges).** Our submission includes a
+database login and an OpenRouter key made for the judges. Put them in `backend/.env`, replacing the
+commented database lines and the empty key:
+
+```properties
+DB_URL=<database URL from our submission>
+DB_USERNAME=<user from our submission>
+DB_PASSWORD=<password from our submission>
+OPENROUTER_API_KEY=<key from our submission>
+```
+
+You then see every test we ran, with its answers, evidence, reviews and fixes, and can run tests and
+review answers yourself. The login cannot drop tables or delete results, and the key has a small
+credit limit.
+
+**Option B: your own empty database.** Leave the database lines commented out and start a local
+MySQL 8 on port 3306, user `root` with no password, for example:
+
+```bash
+docker run -d --name kavasam-mysql -p 3306:3306 -e MYSQL_ALLOW_EMPTY_PASSWORD=yes mysql:8.4
+```
+
+Add your own `OPENROUTER_API_KEY` (https://openrouter.ai/keys, set a credit limit) to run tests. The
+app starts with the 20 scenarios and no results until you run a test.
+
+Then, in two terminals:
 
 ```bash
 cd backend && ./mvnw spring-boot:run
@@ -194,10 +221,12 @@ cd backend && ./mvnw spring-boot:run
 cd frontend && npm install && npm run dev
 ```
 
-Open http://localhost:5173. The backend applies the database migrations and loads the 20 scenarios
-on first start. Without an API key the app still starts and shows recorded results; it just cannot
-start runs. Our main test (15 scenarios × 4 languages × 3 repeats = 180 answers) took about 10
-minutes and cost about $3 with the default models; the Tests page estimates the cost before you start.
+Open http://localhost:5173, enter a name and a role, and start on Tests. The backend applies the
+database migrations and loads the 20 scenarios on first start. Without an API key the app still
+starts and shows what is in the database; it just cannot start tests. Our main test (15 scenarios ×
+4 languages × 3 repeats = 180 answers) took about 10 minutes and cost about $3 with the default
+models; the Tests page estimates the cost before you start. A test of one scenario in four languages,
+asked once, costs a few cents.
 
 Settings worth knowing (environment variables or `backend/.env`):
 
