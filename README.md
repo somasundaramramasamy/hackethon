@@ -9,7 +9,9 @@ to a native-speaker reviewer, investigates failures with an AI agent, proposes a
 person to approve, and retests to prove the fix works without breaking anything else.
 
 Built for the Cognizant BrAInstorm Challenge 2026 (*Agentic AI for Good*), Accessibility & Inclusion
-track, by team Kavasam.
+and Healthcare & Wellness tracks, by team Kavasam.
+
+**Slides:** [docs/Kavasam-deck.pdf](docs/Kavasam-deck.pdf) (the problem, the solution and the architecture, in 10 slides).
 
 > Kavasam supports human judgment. It does not certify medical safety, and nothing it flags is a
 > finding until a native speaker confirms it.
