@@ -13,7 +13,7 @@ import com.cognizant.backend.agent.DecisionRequest;
 
 import jakarta.validation.Valid;
 
-/** Fixes saved from failed answers, which later runs give the assistant with the same question. */
+/** Fixes saved from failed answers; once switched on, later runs give them with the same question. */
 @RestController
 @RequestMapping("/api")
 public class ScenarioFixController {

@@ -253,3 +253,7 @@ tools/pilot/  the first local pilot with Ollama models, kept for reference
 ## Team
 
 Yokeshwaran Goppinat · Somasundaram Ramasamy · Hameeda Kaleemi Shaik Masthan · Amala Urpava Seleena Selvaraj
+
+## License
+
+MIT, see [LICENSE](LICENSE).

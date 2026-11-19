@@ -35,7 +35,6 @@ const id = (value) => encodeURIComponent(value)
 
 // App
 export const getSettings = () => request('/api/settings')
-export const getDashboard = () => request('/api/dashboard')
 
 // Runs and results
 export const getRuns = () => request('/api/runs')
@@ -55,14 +54,13 @@ export const getReviewQueue = ({ run, language } = {}) => {
 }
 export const getReviewHistory = ({ run } = {}) => request(`/api/reviews/history${run ? `?run=${id(run)}` : ''}`)
 export const getReviewQueueCount = () => request('/api/reviews/queue/count').then((r) => r.count)
-export const getAgreement = () => request('/api/reviews/agreement')
 export const submitReview = (resultId, body) => post(`/api/results/${id(resultId)}/review`, body)
 
 // Agents and fixes
 export const startInvestigation = (resultId, person) =>
   post(`/api/results/${id(resultId)}/investigations`, { person })
 export const getInvestigation = (investigationId) => request(`/api/investigations/${id(investigationId)}`)
-// Fixes saved from failed answers, given to the model the next time the same question is asked
+// Fixes saved from failed answers; once switched on, given to the model with the same question
 export const getScenarioFixes = () => request('/api/scenario-fixes')
 export const switchScenarioFix = (fixId, on, person, note) =>
   post(`/api/scenario-fixes/${id(fixId)}/${on ? 'on' : 'off'}`, { person, note })

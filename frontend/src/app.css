@@ -32,12 +32,7 @@
   flex-direction: column;
   gap: 6px;
 }
-.big-number {
-  font-size: 44px;
-  font-weight: 700;
-  letter-spacing: -1px;
-  margin-bottom: 4px;
-}
+
 .ok {
   color: var(--green);
 }
@@ -47,12 +42,8 @@
 .warn {
   color: #b26b00;
 }
-.inline {
-  margin-top: 14px;
-  align-self: flex-start;
-}
 
-/* Demo banner and reviewer name */
+/* Read-only demo banner */
 .demo-banner {
   background: var(--navy-700);
   color: #fff;
@@ -123,16 +114,7 @@
 }
 
 /* Forms */
-.run-form {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 16px;
-  align-items: start;
-  margin-top: 8px;
-}
-.run-form .form-actions {
-  grid-column: 1 / -1;
-}
+
 .field select,
 .field textarea,
 .field input:not([type]),
@@ -562,17 +544,13 @@ textarea.note {
 }
 
 @media (max-width: 1200px) {
-  .run-form {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
   .qa-grid,
   .qa-grid.qa-three {
     grid-template-columns: minmax(0, 1fr);
   }
 }
 @media (max-width: 700px) {
-  .run-form,
-  .change-counts {
+    .change-counts {
     grid-template-columns: minmax(0, 1fr);
   }
   .lang-bar-row {
@@ -637,13 +615,6 @@ textarea.note {
 /* Long scenario titles wrap in the review queue so the table fits */
 .queue-answer {
   white-space: normal;
-}
-
-/* A form value with only one option, shown as text */
-.field-static {
-  display: block;
-  padding: 9px 0;
-  font-weight: 500;
 }
 
 /* Who's using Kavasam? */
@@ -739,9 +710,7 @@ textarea.note {
 }
 
 /* Test names */
-.run-form .run-name {
-  grid-column: 1 / -1;
-}
+
 .run-name-link {
   white-space: normal;
 }
@@ -1336,7 +1305,7 @@ textarea.note {
   color: var(--text);
 }
 
-/* ───────── Fixes ───────── */
+/* Fixes */
 .fixes-page {
   display: flex;
   flex-direction: column;
@@ -1520,16 +1489,7 @@ textarea.note {
   font-weight: 600;
   border: 1px solid transparent;
 }
-.fix-lang.always {
-  background: var(--red-50);
-  color: #b4232a;
-  border-color: #f6c9cb;
-}
-.fix-lang.sometimes {
-  background: var(--amber-50);
-  color: #a15c00;
-  border-color: #fbdfae;
-}
+
 .fix-lang:hover {
   filter: brightness(0.97);
 }
@@ -1681,9 +1641,7 @@ textarea.note {
   font-size: 13.5px;
   cursor: pointer;
 }
-.flip {
-  transform: rotate(180deg);
-}
+
 .fix-results {
   display: flex;
   flex-direction: column;
@@ -1862,7 +1820,7 @@ textarea.note {
   }
 }
 
-/* ───────── Saved fixes ───────── */
+/* Saved fixes */
 .sfix-summary {
   display: grid;
   grid-template-columns: 1.4fr repeat(4, 1fr);

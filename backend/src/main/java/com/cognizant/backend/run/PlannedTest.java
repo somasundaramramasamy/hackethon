@@ -12,7 +12,7 @@ import com.cognizant.backend.judge.JudgeRequest;
 /**
  * One question to ask during a run, detached from JPA so worker threads can use it safely.
  *
- * @param guidance the fix saved from an earlier failure of this scenario in this language, or null
+ * @param guidance the saved fix for this scenario and language if it is switched on, or null
  */
 record PlannedTest(
         Long scenarioId,

@@ -74,7 +74,7 @@ public class RunExecutor {
         long start = System.nanoTime();
         LlmReply reply;
         try {
-            // A fix saved from an earlier failure of this question is given with it.
+            // A saved fix for this question, if one is switched on, is given with it.
             reply = assistant.ask(model, ScenarioFixService.withGuidance(systemPrompt, test.guidance()), test.question());
         } catch (RuntimeException e) {
             log.warn("Question failed: scenario {} {} attempt {}: {}", test.scenarioId(), test.language(),

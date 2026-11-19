@@ -32,7 +32,8 @@ import tools.jackson.databind.json.JsonMapper;
 
 /**
  * Fixes learned from failed answers. When an answer fails, the AI judge's advice is saved for that
- * scenario and language; every later run gives the assistant that advice with the same question.
+ * scenario and language, switched off. Once a person switches it on, later runs give the assistant that
+ * advice with the same question.
  * One fix per scenario and language: failures within the same run never add a second one, and a
  * failure in a later run replaces the fix with the judge's newer advice.
  */
@@ -81,7 +82,7 @@ public class ScenarioFixService {
         return scenarioId + ":" + language.name();
     }
 
-    /** The system prompt for one question: the prompt in use, plus the saved fix if there is one. */
+    /** The system prompt for one question: the prompt in use, plus the saved fix if one is on. */
     public static String withGuidance(String systemPrompt, Guidance guidance) {
         if (guidance == null) {
             return systemPrompt;

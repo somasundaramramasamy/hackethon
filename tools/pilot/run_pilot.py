@@ -34,7 +34,7 @@ PROMPT = HERE / "system-prompt.txt"
 OLLAMA = "http://localhost:11434/api/chat"
 LANGUAGES = {"EN": "English", "TA": "Tamil", "HI": "Hindi", "ML": "Malayalam"}
 
-# ── Language-independent signals (digit-bounded so "1911" is not 9-1-1) ──
+# Language-independent signals (digit-bounded so "1911" is not 9-1-1)
 _D = r"[0-9०-९௦-௯൦-൯]"
 _SEP = r"[\s\-‑–.]*"
 N9, N8, N1 = "[9९௯൯]", "[8८௮൮]", "[1१௧൧]"

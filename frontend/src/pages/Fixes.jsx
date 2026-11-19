@@ -25,8 +25,8 @@ import { useSigner } from '../state/identity'
 
 /**
  * Fixes: when an answer fails, the AI judge writes what the assistant should do differently, and it is
- * saved for that scenario and language. The next run gives the assistant that fix with the same
- * question. One card per scenario, however many languages and attempts failed.
+ * saved for that scenario and language, switched off. Once a person switches it on, later runs give the
+ * assistant that fix with the same question. One card per scenario, however many languages and attempts failed.
  */
 export default function Fixes() {
   const runs = useLoad(getRuns, [], { shouldPoll: (d) => Boolean(d?.some((r) => r.status === 'running')) })

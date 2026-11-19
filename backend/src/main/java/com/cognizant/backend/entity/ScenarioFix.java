@@ -17,7 +17,8 @@ import jakarta.persistence.UniqueConstraint;
 
 /**
  * Guidance learned from a failed answer, for one scenario in one language: what the AI judge said the
- * assistant should do differently. Every later run of that question gives the assistant this guidance.
+ * assistant should do differently. While it is switched on, later runs of that question give the assistant
+ * this guidance.
  * There is at most one per scenario and language; a later failure that still happens with the fix
  * replaces its text with the judge's newer advice (a new revision).
  */

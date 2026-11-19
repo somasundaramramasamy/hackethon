@@ -223,7 +223,7 @@ public class RunService {
         }
     }
 
-    /** One question, with the fix saved for its scenario and language, so the assistant can avoid the earlier failure. */
+    /** One question, with the saved fix for its scenario and language if one is switched on. */
     private static PlannedTest planned(TestScenario s, Language language, String question, int attempt,
             Map<String, ScenarioFixService.Guidance> guidance) {
         return new PlannedTest(s.getId(), s.getTitle(), s.getKind(), s.getRuleSignals(), s.getExpectedBehaviour(),
