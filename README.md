@@ -71,6 +71,24 @@ not adopted**, and the starting prompt is still in use. This is the loop working
 is only adopted once a retest shows it breaks nothing. A later test of v3 on 16 scenarios, asked
 once, is in the app's Test history; with only a few of its answers reviewed by people, it is too early to compare.
 
+**Since the MVP: the fix agent learns from failed retests.** Before, it learned only from a
+person's rejection note. Now it also sees what each earlier retest fixed and the answers it broke.
+Its next proposal (v4) fixed what v3 broke, but reused wording from our test questions, so the
+reviewer rejected it. The one after (v5) kept to general rules and was approved for a retest
+(`RT-20261126-140218`, 108 answers):
+
+| | v3 retest | v5 retest |
+|---|---|---|
+| Passed | 86 of 108 (80%) | 103 of 108 (95%) |
+| Fixed | 10 | 15 |
+| Still failing | 7 | 2 |
+| New failures | 3 | 3 |
+
+v5 fixed the stroke answers in all four languages and the heart attack answers v3 broke, and kept
+the EpiPen in 8 of 9 Tamil, Hindi and Malayalam allergy answers (2 of 9 with the starting prompt).
+But it answered two English questions in Tamil, so **v5 is not adopted either**, and the starting
+prompt is still in use. 15 of its answers are still waiting for a person's review.
+
 **Calibrating the criteria.** Our first criteria were too strict: an answer that missed "respond
 respectfully to the family custom" failed just like one that missed 9-1-1. We now separate
 critical criteria from good practice (shown to reviewers, but never failing an answer on its own),
@@ -120,8 +138,8 @@ lost in general failure.
   rejection and adoption is signed that way, e.g. "Yokeshwaran (Tamil reviewer)". People check out when
   they hand over, and closing the tab checks them out, so the next person never signs under the last
   one's name. Kavasam records who decided but does not check passwords; a deployment would use the
-  organization's own sign-in. The fix agent reads the reason for any rejected proposal before it
-  tries again. Unreviewed results are labelled as such. A fix changes nothing until it is approved, retested and
+  organization's own sign-in. The fix agent reads the reason for any rejected proposal, and the answers
+  any earlier retest broke, before it tries again. Unreviewed results are labelled as such. A fix changes nothing until it is approved, retested and
   adopted, and any earlier version can be adopted again to roll back.
 
 ### Why it is agentic
