@@ -16,6 +16,7 @@ import com.cognizant.backend.entity.InvestigationStatus;
 import com.cognizant.backend.entity.PromptStatus;
 import com.cognizant.backend.entity.ResultVerdict;
 import com.cognizant.backend.entity.RunStatus;
+import com.cognizant.backend.entity.RunType;
 import com.cognizant.backend.entity.TestResult;
 import com.cognizant.backend.entity.TestRun;
 import com.cognizant.backend.exception.NotAllowedException;
@@ -45,6 +46,8 @@ public class FixService {
     /** Earlier rejected proposals shown to the agent, newest last. */
     static final int MAX_REJECTIONS = 3;
     static final int EXCERPT_CHARS = 500;
+    /** Newly broken answers shown per earlier retested proposal. */
+    static final int MAX_BROKEN = 8;
 
     private final TestRunRepository runs;
     private final TestResultRepository results;
@@ -71,7 +74,69 @@ public class FixService {
     }
 
     private record Input(TestRun run, String currentPrompt, List<FixAgent.Failure> failures,
-            List<FixAgent.Diagnosis> diagnoses, List<FixAgent.Rejection> rejections) {
+            List<FixAgent.Diagnosis> diagnoses, List<FixAgent.Rejection> rejections, List<FixAgent.Tried> tried) {
+    }
+
+    /**
+     * Earlier proposals for this run that were approved and retested but are not in use, newest last, each with
+     * the answers its retest newly broke. The agent learns from the evidence, not only from a person's note.
+     */
+    private List<FixAgent.Tried> tried(TestRun run) {
+        List<AssistantPrompt> candidates = promptRepository.findBySourceRunIdAndBasedOnVersionAndStatusInOrderByVersionAsc(
+                run.getId(), run.getPromptVersion(), List.of(PromptStatus.APPROVED, PromptStatus.RETIRED));
+        Map<String, Boolean> failedBefore = failingCells(results.findByTestRun_IdOrderByIdAsc(run.getId()));
+        List<FixAgent.Tried> tried = new ArrayList<>();
+        for (AssistantPrompt p : candidates) {
+            TestRun retest = runs.findByTypeAndPromptVersionOrderByStartedAtDesc(RunType.RETEST, p.getVersion()).stream()
+                    .filter(r -> run.getId().equals(r.getBaselineRunId()) && r.getStatus() == RunStatus.COMPLETED)
+                    .findFirst().orElse(null);
+            if (retest == null) {
+                continue;
+            }
+            List<TestResult> after = results.findByTestRun_IdOrderByIdAsc(retest.getId());
+            Map<String, Boolean> failsNow = failingCells(after);
+            int fixed = 0;
+            int still = 0;
+            Map<String, TestResult> broke = new LinkedHashMap<>();
+            for (var cell : failsNow.entrySet()) {
+                boolean before = failedBefore.getOrDefault(cell.getKey(), false);
+                if (before && !cell.getValue()) {
+                    fixed++;
+                } else if (before) {
+                    still++;
+                } else if (cell.getValue()) {
+                    after.stream()
+                            .filter(r -> cellKey(r).equals(cell.getKey())
+                                    && r.getEffectiveVerdict() != ResultVerdict.PASS)
+                            .findFirst().ifPresent(r -> broke.put(cell.getKey(), r));
+                }
+            }
+            List<FixAgent.Failure> brokeList = broke.values().stream().limit(MAX_BROKEN)
+                    .map(r -> new FixAgent.Failure(r.getScenario().getCode() + " " + r.getScenario().getTitle(),
+                            r.getLanguage().getDisplayName(), r.getQuestion(), excerpt(r.getAnswer()),
+                            excerpt(r.getTranslation()), r.getCheckDetail(), r.getReviewNote()))
+                    .toList();
+            if (broke.isEmpty()) {
+                // A retest that broke nothing is not a lesson in what to avoid.
+                continue;
+            }
+            tried.add(new FixAgent.Tried(p.getVersion(), p.getText(), p.getSummary(), retest.getCode(), fixed, still,
+                    brokeList));
+        }
+        return tried.subList(Math.max(0, tried.size() - MAX_REJECTIONS), tried.size());
+    }
+
+    /** For each scenario and language in a run: whether any of its answers did not pass. */
+    private static Map<String, Boolean> failingCells(List<TestResult> all) {
+        Map<String, Boolean> cells = new LinkedHashMap<>();
+        for (TestResult r : all) {
+            cells.merge(cellKey(r), r.getEffectiveVerdict() != ResultVerdict.PASS, Boolean::logicalOr);
+        }
+        return cells;
+    }
+
+    private static String cellKey(TestResult r) {
+        return r.getScenario().getCode() + ":" + r.getLanguage();
     }
 
     /**
@@ -126,11 +191,13 @@ public class FixService {
                     .toList();
             // Only the latest few, so the brief stays focused.
             rejections = rejections.subList(Math.max(0, rejections.size() - MAX_REJECTIONS), rejections.size());
-            return new Input(run, prompts.get(run.getPromptVersion()).getText(), failures, diagnoses, rejections);
+            List<FixAgent.Tried> tried = tried(run);
+            return new Input(run, prompts.get(run.getPromptVersion()).getText(), failures, diagnoses, rejections,
+                    tried);
         });
 
         FixAgent.Proposal proposal = agent.propose(input.run().getJudgeModel(), input.currentPrompt(),
-                input.failures(), input.diagnoses(), input.rejections());
+                input.failures(), input.diagnoses(), input.rejections(), input.tried());
         AssistantPrompt saved = prompts.propose(proposal.prompt(), proposal.summary(), proposal.rationale(),
                 input.run().getPromptVersion(), input.run().getId(), "agent:" + input.run().getJudgeModel());
         log.info("Fix agent proposed prompt v{} for run {} ({} failures, {} diagnoses){}", saved.getVersion(),

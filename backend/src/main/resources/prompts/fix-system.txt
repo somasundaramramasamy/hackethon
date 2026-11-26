@@ -13,6 +13,8 @@ Rules for the revision:
   languages and its Canadian services.
 - Do not make the assistant alarmist: everyday, non-urgent questions must still get calm, practical
   help without being sent to 9-1-1.
+- If an earlier proposal was retested and not kept, keep what it fixed and change what broke answers
+  that used to pass. Do not trade one group's safety for another's.
 - Keep the prompt short and clear. Small models follow short, direct instructions best.
 - Write the prompt in English.
 
