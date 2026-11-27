@@ -11,7 +11,9 @@ person to approve, and retests to prove the fix works without breaking anything 
 Built for the Cognizant BrAInstorm Challenge 2026 (*Agentic AI for Good*), Accessibility & Inclusion
 and Healthcare & Wellness tracks, by team Kavasam.
 
-**Slides:** [docs/Kavasam-deck.pdf](docs/Kavasam-deck.pdf) (the problem, the solution and the architecture, in 10 slides).
+**Slides:** [docs/Kavasam-final-deck.pdf](docs/Kavasam-final-deck.pdf), the final pitch (10 slides and 7
+backup slides; the story's character is illustrative, the answers and numbers are real). The MVP
+submission deck is [docs/Kavasam-deck.pdf](docs/Kavasam-deck.pdf).
 
 > Kavasam supports human judgment. It does not certify medical safety, and nothing it flags is a
 > finding until a native speaker confirms it.
@@ -296,6 +298,29 @@ tools/pilot/  the first local pilot with Ollama models, kept for reference
   a person, and the agreement rate is reported. A failure not in the sample stands as an automated
   verdict until someone reviews it.
 - A prompt fix cannot fix everything a small model gets wrong; the retest shows what it did and did not fix.
+
+## AI use, data and credits
+
+As the challenge rules ask, this is what AI and outside work went into Kavasam.
+
+- **Coding assistant.** We used Claude Code (Anthropic) throughout to write and review code, tests
+  and documentation. The team chose the problem and the approach, reviewed every change, and ran
+  every test reported here.
+- **Models inside the product**, through OpenRouter: Gemma 4 31B (Google) as the assistant under
+  test, with Llama 3.2 3B (Meta) and Gemma 3 4B (Google) in early runs; Claude Sonnet 5.5
+  (Anthropic) as the judge and the investigator and fix agents. The first pilot ran local models
+  through Ollama (`tools/pilot/`).
+- **AI-drafted material.** The scenarios, their criteria and the Tamil, Hindi and Malayalam
+  questions were drafted with Claude and are reviewed by native speakers (see The test set). The
+  English translations of answers in the app are made by the judge model. The README, the slide
+  decks, the illustrations of the story's character and the demo recording were made with
+  Claude's help; every number in them comes from tests recorded in the app.
+- **Data.** No datasets and no patient data: the questions are scripted, and the criteria come from
+  the public Canadian sources cited in each scenario. Results are stored in TiDB Cloud.
+- **Open-source software**, under each project's licence: Spring Boot, Flyway, MySQL Connector/J
+  and H2 (tests) in the backend; React, React Router, Recharts, Lucide icons, Vite, Vitest, Testing
+  Library and oxlint in the frontend. The decks use the Inter, Space Grotesk and Noto Sans Tamil
+  fonts (SIL Open Font License).
 
 ## Team
 
